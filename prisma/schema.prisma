@@ -1,0 +1,242 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id        Int        @id @default(autoincrement())
+  name      String
+  userRoles UserRole[]
+  createdAt DateTime?  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+
+  @@map("role")
+}
+
+model User {
+  id                      String     @id @default(uuid())
+  email                   String?    @unique
+  username                String?    @unique
+  password                String?
+  firstName               String?    @map("first_name")
+  lastName                String?    @map("last_name")
+  address                 String?
+  gender                  Int?       @db.SmallInt
+  avatarUrl               String?    @map("avatar_url")
+  passwordResetToken      String?    @map("password_reset_token")
+  passwordResetExpiration DateTime?  @map("password_reset_expiration") @db.Timestamp()
+  userRoles               UserRole[]
+  userCart                Cart?
+  orders                  Order[]
+  createdAt               DateTime   @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt               DateTime?  @map("updated_at") @db.Timestamp()
+  deletedAt               DateTime?  @map("deleted_at") @db.Timestamp()
+
+  @@map("user")
+}
+
+model UserRole {
+  id        Int       @id @default(autoincrement())
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id])
+  roleId    Int       @map("role_id")
+  role      Role      @relation(fields: [roleId], references: [id])
+  createdAt DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt DateTime? @map("updated_at") @db.Timestamp()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp()
+
+  @@map("user_role")
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt   DateTime? @map("updated_at") @db.Timestamp()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamp()
+
+  @@map("category")
+}
+
+model Product {
+  id            String         @id @default(uuid())
+  name          String
+  description   String?
+  amount        Int
+  price         Int
+  categoryId    String         @map("category_id")
+  category      Category       @relation(fields: [categoryId], references: [id])
+  productStores ProductStore[]
+  createdAt     DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt     DateTime?      @map("updated_at") @db.Timestamp()
+  deletedAt     DateTime?      @map("deleted_at") @db.Timestamp()
+
+  @@map("product")
+}
+
+model Store {
+  id            String         @id @default(uuid())
+  address       String?
+  productStores ProductStore[]
+  createdAt     DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt     DateTime?      @map("updated_at") @db.Timestamp()
+  deletedAt     DateTime?      @map("deleted_at") @db.Timestamp()
+
+  @@map("store")
+}
+
+model ProductStore {
+  id                 String              @id @default(uuid())
+  productId          String
+  product            Product             @relation(fields: [productId], references: [id])
+  storeId            String
+  store              Store               @relation(fields: [storeId], references: [id])
+  cartProducts       CartProduct[]
+  importOrderDetails ImportOrderDetail[]
+  orderDetails       OrderDetail[]
+  createdAt          DateTime            @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt          DateTime?           @map("updated_at") @db.Timestamp()
+  deletedAt          DateTime?           @map("deleted_at") @db.Timestamp()
+
+  @@map("product_store")
+}
+
+model Cart {
+  id           String        @id @default(uuid())
+  createdBy    String        @unique @map("created_by")
+  user         User          @relation(fields: [createdBy], references: [id])
+  cartProducts CartProduct[]
+  createdAt    DateTime      @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt    DateTime?     @map("updated_at") @db.Timestamp()
+  deletedAt    DateTime?     @map("deleted_at") @db.Timestamp()
+
+  @@map("cart")
+}
+
+model CartProduct {
+  id             String       @id @default(uuid())
+  cartId         String       @map("cart_id")
+  cart           Cart         @relation(fields: [cartId], references: [id])
+  productStoreId String       @map("product_store_id")
+  productStore   ProductStore @relation(fields: [productStoreId], references: [id])
+  createdAt      DateTime     @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt      DateTime?    @map("updated_at") @db.Timestamp()
+  deletedAt      DateTime?    @map("deleted_at") @db.Timestamp()
+
+  @@map("cart_product")
+}
+
+model RequestStatus {
+  id            Int            @id @default(autoincrement())
+  name          String
+  orderRequests OrderRequest[]
+
+  @@map("request_status")
+}
+
+model ImportOrder {
+  id                String              @id @default(uuid())
+  total             Float               @db.Double
+  importOderDetails ImportOrderDetail[]
+  createdAt         DateTime            @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt         DateTime?           @map("updated_at") @db.Timestamp()
+  deletedAt         DateTime?           @map("deleted_at") @db.Timestamp()
+
+  @@map("import_order")
+}
+
+model ImportOrderDetail {
+  id             String       @id @default(uuid())
+  amount         Int
+  importOrderId  String       @map("import_order_id")
+  importOrder    ImportOrder  @relation(fields: [importOrderId], references: [id])
+  productStoreId String       @map("product_store_id")
+  productStore   ProductStore @relation(fields: [productStoreId], references: [id])
+  createdAt      DateTime     @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt      DateTime?    @map("updated_at") @db.Timestamp()
+  deletedAt      DateTime?    @map("deleted_at") @db.Timestamp()
+
+  @@map("import_order_detail")
+}
+
+model Voucher {
+  id              String    @id @default(uuid())
+  minValueOrder   Int?      @map("min_value_order")
+  discountValue   Int?      @map("discount_value")
+  discountPercent Int?      @map("discount_percent")
+  startDate       DateTime? @map("start_date") @db.Timestamp()
+  endDate         DateTime? @map("end_date") @db.Timestamp()
+  orders          Order[]
+  createdAt       DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt       DateTime? @map("updated_at") @db.Timestamp()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamp()
+
+  @@map("voucher")
+}
+
+model Order {
+  id           String         @id @default(uuid())
+  total        Float          @db.Double
+  shipping     Float          @db.Double
+  address      String?
+  createdBy    String         @map("created_by")
+  user         User           @relation(fields: [createdBy], references: [id])
+  voucherId    String         @map("voucher_id")
+  voucher      Voucher        @relation(fields: [voucherId], references: [id])
+  orderRequest OrderRequest[]
+  orderDetails OrderDetail[]
+  bills        Bill[]
+  createdAt    DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt    DateTime?      @map("updated_at") @db.Timestamp()
+  deletedAt    DateTime?      @map("deleted_at") @db.Timestamp()
+
+  @@map("order")
+}
+
+model OrderDetail {
+  id             String       @id @default(uuid())
+  quantity       Int
+  productStoreId String       @map("product_store_id")
+  productStore   ProductStore @relation(fields: [productStoreId], references: [id])
+  orderId        String       @map("order_id")
+  order          Order        @relation(fields: [orderId], references: [id])
+  createdAt      DateTime     @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt      DateTime?    @map("updated_at") @db.Timestamp()
+  deletedAt      DateTime?    @map("deleted_at") @db.Timestamp()
+
+  @@map("order_detail")
+}
+
+model OrderRequest {
+  id              String        @id @default(uuid())
+  quantity        Int
+  requestStatusId Int           @map("request_status_id")
+  requestStatus   RequestStatus @relation(fields: [requestStatusId], references: [id])
+  orderId         String        @map("order_id")
+  order           Order         @relation(fields: [orderId], references: [id])
+  createdAt       DateTime      @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt       DateTime?     @map("updated_at") @db.Timestamp()
+  deletedAt       DateTime?     @map("deleted_at") @db.Timestamp()
+
+  @@map("order_request")
+}
+
+model Bill {
+  id            String    @id @default(uuid())
+  orderId       String    @map("order_id")
+  order         Order     @relation(fields: [orderId], references: [id])
+  typeOfPayment String?   @map("type_of_payment")
+  createdAt     DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt     DateTime? @map("updated_at") @db.Timestamp()
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamp()
+
+  @@map("bill")
+}
