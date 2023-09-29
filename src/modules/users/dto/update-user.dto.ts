@@ -23,4 +23,7 @@ export class UpdateUserDTO {
     @IsOptional()
     address?: string;
 
+    @ApiProperty({required: false})
+    @IsOptional()
+    phone?: string;
 }

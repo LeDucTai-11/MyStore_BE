@@ -1,6 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import RoleGuard from 'src/core/guards/roles/roles.guard';
 import { Role } from 'src/core/enum/roles.enum';
 
@@ -8,20 +17,35 @@ import { Role } from 'src/core/enum/roles.enum';
 @Controller('admin')
 @ApiBearerAuth()
 export class AdminController {
-    constructor(
-        private userService : UsersService,
-    ){}
+  constructor(private userService: UsersService) {}
 
-    @Get("/users")
-    @UseGuards(RoleGuard(Role.Admin))
-    findAll() {
-        return this.userService.findAll();
-    }
+  @Get('/users')
+  @UseGuards(RoleGuard(Role.Admin))
+  @ApiQuery({
+    name: 'role',
+    required: false,
+    type: Number,
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    type: Number,
+    example: 0,
+  })
+  findAll(@Query() queryData: any) {
+    return this.userService.findAll(queryData);
+  }
 
-    @Get("/users/:id")
-    @UseGuards(RoleGuard(Role.Admin))
-    findByID(@Param('id') id: string) {
-        return this.userService.findByID(id);
-    }
-
+  @Get('/users/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  findByID(@Param('id') id: string) {
+    return this.userService.findByID(id);
+  }
 }

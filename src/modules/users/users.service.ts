@@ -1,4 +1,9 @@
-import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDTO, UpdateUserDTO } from './dto';
 import * as argon from 'argon2';
@@ -6,342 +11,360 @@ import { Role } from 'src/core/enum/roles.enum';
 
 @Injectable()
 export class UsersService {
-    constructor(private prismaService: PrismaService) { }
+  constructor(private prismaService: PrismaService) {}
 
-    async findByUserName(userName: string) {
-        const user = await this.prismaService.user.findUnique({
-            where: {
-                username: userName,
-            },
-            include: {
-                userRoles: {
-                    include: {
-                        role: true
-                    }
-                }
-            }
-        });
-        return user;
-    }
+  async findByUserName(userName: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        username: userName,
+      },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+    return user;
+  }
 
-    async findAll() {
-        return this.prismaService.user.findMany({
-            where: {
-                userRoles: {
-                    some: {
-                        roleId: Role.User
-                    }
-                }
-            },
-            select: {
+  async findAll(queryData) {
+    const limit = Number(queryData.limit) || 10;
+    const offset = Number(queryData.offset) || 0;
+    const query: any = {
+      where: {},
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        phone: true,
+        address: true,
+        userRoles: {
+          select: {
+            roleId: true,
+            role: {
+              select: {
                 id: true,
-                email: true,
-                username: true,
-                firstName: true,
-                lastName: true,
-                gender: true,
-                address: true,
-                userRoles: {
-                    select: {
-                        roleId: true,
-                        role: {
-                            select: {
-                                id: true,
-                                name: true,
-                            }
-                        }
-                    },
-                    where: {
-                        deletedAt: null
-                    }
-                },
-                createdAt: true
-            }
-        });
-    }
-
-    async findByID(id: string) {
-        const user = await this.prismaService.user.findUnique({
-            where: {
-                id: id,
+                name: true,
+              },
             },
-            select: {
-                id: true,
-                email: true,
-                username: true,
-                firstName: true,
-                lastName: true,
-                gender: true,
-                address: true,
-                userRoles: {
-                    select: {
-                        roleId: true,
-                        role: {
-                            select: {
-                                id: true,
-                                name: true,
-                            }
-                        }
-                    },
-                    where: {
-                        deletedAt: null
-                    }
-                },
-                createdAt: true
-            }
-        });
-        if(!user) {
-            throw new NotFoundException("User not found with ID: "+ id);
-        }
-        return user;
+          },
+          where: {
+            deletedAt: null,
+          },
+        },
+        createdAt: true,
+      },
+    };
+    if (queryData.role) {
+      const userRoles: any = {
+        some: {
+          roleId: Number(queryData.role),
+        },
+      };
+      query.where.userRoles = userRoles;
     }
+    return this.prismaService.user.findMany(query);
+  }
 
-    async findByEmail(email: string) {
-        const user = await this.prismaService.user.findUnique({
-            where: {
-                email: email,
+  async findByID(id: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        phone: true,
+        address: true,
+        userRoles: {
+          select: {
+            roleId: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-            select: {
-                id: true,
-                email: true,
-                username: true,
-                firstName: true,
-                lastName: true,
-                gender: true,
-                address: true,
-                passwordResetToken: true,
-                passwordResetExpiration: true,
-                userRoles: {
-                    select: {
-                        roleId: true,
-                        role: {
-                            select: {
-                                id: true,
-                                name: true,
-                            }
-                        }
-                    },
-                    where: {
-                        deletedAt: null
-                    }
-                },
-                createdAt: true
-            }
-        });
-        return user;
+          },
+          where: {
+            deletedAt: null,
+          },
+        },
+        createdAt: true,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found with ID: ' + id);
     }
+    return user;
+  }
 
-    async findByResetPasswordToken(resetPasswordToken: string) {
-        const user = await this.prismaService.user.findFirst({
-            where: {
-                passwordResetToken: resetPasswordToken,
+  async findByEmail(email: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        email: email,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        phone: true,
+        address: true,
+        passwordResetToken: true,
+        passwordResetExpiration: true,
+        userRoles: {
+          select: {
+            roleId: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-            select: {
-                id: true,
-                email: true,
-                username: true,
-                firstName: true,
-                lastName: true,
-                gender: true,
-                address: true,
-                passwordResetToken: true,
-                passwordResetExpiration: true,
-                userRoles: {
-                    select: {
-                        roleId: true,
-                        role: {
-                            select: {
-                                id: true,
-                                name: true,
-                            }
-                        }
-                    },
-                    where: {
-                        deletedAt: null
-                    }
-                },
-                createdAt: true
-            }
-        });
-        return user;
-    }
+          },
+          where: {
+            deletedAt: null,
+          },
+        },
+        createdAt: true,
+      },
+    });
+    return user;
+  }
 
-    async createUser(createUserDTO: CreateUserDTO) {
-        const hashedPassword = await argon.hash(createUserDTO.password);
-        return this.prismaService.user.create({
-            data: {
-                email: createUserDTO.email,
-                username: createUserDTO.username,
-                password: hashedPassword,
-                firstName: createUserDTO.firstName,
-                lastName: createUserDTO.lastName,
-                gender: createUserDTO.gender,
-                address: createUserDTO.address,
-                userRoles: {
-                    create: {
-                        roleId: Role.User
-                    }
-                },
-                userCart: {
-                    create: {
-                    }
-                }
+  async findByResetPasswordToken(resetPasswordToken: string) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        passwordResetToken: resetPasswordToken,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        phone: true,
+        address: true,
+        passwordResetToken: true,
+        passwordResetExpiration: true,
+        userRoles: {
+          select: {
+            roleId: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-            select: {
-                id: true,
-                email: true,
-                username: true,
-                firstName: true,
-                lastName: true,
-                gender: true,
-                address: true,
-                userRoles: {
-                    select: {
-                        roleId: true,
-                        role: {
-                            select: {
-                                id: true,
-                                name: true,
-                            }
-                        }
-                    },
-                    where: {
-                        deletedAt: null,
-                    }
-                },
-                createdAt: true
-            }
-        });
-    }
+          },
+          where: {
+            deletedAt: null,
+          },
+        },
+        createdAt: true,
+      },
+    });
+    return user;
+  }
 
-    async updateResetPassword(userID: string, resetPasswordToken: string, resetPasswordExpiration: Date) {
-        try {
-            return await this.prismaService.user.update({
-                where: {
-                    id: userID,
-                },
-                data: {
-                    passwordResetToken: resetPasswordToken,
-                    passwordResetExpiration: resetPasswordExpiration,
-                    updatedAt: new Date(),
-                },
+  async createUser(createUserDTO: CreateUserDTO) {
+    const hashedPassword = await argon.hash(createUserDTO.password);
+    return this.prismaService.user.create({
+      data: {
+        email: createUserDTO.email,
+        username: createUserDTO.username,
+        password: hashedPassword,
+        firstName: createUserDTO.firstName,
+        lastName: createUserDTO.lastName,
+        gender: createUserDTO.gender,
+        address: createUserDTO.address,
+        userRoles: {
+          create: {
+            roleId: Role.User,
+          },
+        },
+        userCart: {
+          create: {},
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        phone: true,
+        address: true,
+        userRoles: {
+          select: {
+            roleId: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          where: {
+            deletedAt: null,
+          },
+        },
+        createdAt: true,
+      },
+    });
+  }
+
+  async updateResetPassword(
+    userID: string,
+    resetPasswordToken: string,
+    resetPasswordExpiration: Date,
+  ) {
+    try {
+      return await this.prismaService.user.update({
+        where: {
+          id: userID,
+        },
+        data: {
+          passwordResetToken: resetPasswordToken,
+          passwordResetExpiration: resetPasswordExpiration,
+          updatedAt: new Date(),
+        },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          gender: true,
+          phone: true,
+          address: true,
+          userRoles: {
+            select: {
+              roleId: true,
+              role: {
                 select: {
-                    id: true,
-                    email: true,
-                    username: true,
-                    firstName: true,
-                    lastName: true,
-                    gender: true,
-                    address: true,
-                    userRoles: {
-                        select: {
-                            roleId: true,
-                            role: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                }
-                            }
-                        },
-                        where: {
-                            deletedAt: null,
-                        }
-                    },
-                    createdAt: true,
-                    updatedAt: true
-                }
-            })
-        } catch (e) {
-            throw new HttpException(e.message, 500, {
-                cause: new Error('Some Error'),
-            });
-        }
-    }
-
-    async updatePassword(userID: string, password: string) {
-        const hashedPassword = await argon.hash(password);
-        try {
-            return await this.prismaService.user.update({
-                where: {
-                    id: userID,
+                  id: true,
+                  name: true,
                 },
-                data: {
-                    password: hashedPassword,
-                    updatedAt: new Date(),
-                },
-                select: {
-                    id: true,
-                    email: true,
-                    username: true,
-                    firstName: true,
-                    lastName: true,
-                    gender: true,
-                    address: true,
-                    userRoles: {
-                        select: {
-                            roleId: true,
-                            role: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                }
-                            }
-                        },
-                        where: {
-                            deletedAt: null,
-                        }
-                    },
-                    createdAt: true,
-                    updatedAt: true
-                }
-            })
-        } catch (e) {
-            throw new HttpException(e.message, 500, {
-                cause: new Error('Some Error'),
-            });
-        }
-    }
-
-    async updateProfile(req: any, updateUserDTO: UpdateUserDTO) {
-        if (updateUserDTO.email) {
-            const user = await this.findByEmail(updateUserDTO.email);
-            if (user && user.id !== req.user.id) {
-                throw new BadRequestException('The email has already exist !');
-            }
-        }
-        return await this.prismaService.user.update({
+              },
+            },
             where: {
-                id: req.user.id,
+              deletedAt: null,
             },
-            data: {
-                ...updateUserDTO,
-                updatedAt: new Date()
-            },
-            select: {
-                id: true,
-                email: true,
-                username: true,
-                firstName: true,
-                lastName: true,
-                gender: true,
-                address: true,
-                userRoles: {
-                    select: {
-                        roleId: true,
-                        role: {
-                            select: {
-                                id: true,
-                                name: true,
-                            }
-                        }
-                    },
-                    where: {
-                        deletedAt: null,
-                    }
-                },
-                createdAt: true,
-                updatedAt: true
-            }
-        })
+          },
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (e) {
+      throw new HttpException(e.message, 500, {
+        cause: new Error('Some Error'),
+      });
     }
+  }
+
+  async updatePassword(userID: string, password: string) {
+    const hashedPassword = await argon.hash(password);
+    try {
+      return await this.prismaService.user.update({
+        where: {
+          id: userID,
+        },
+        data: {
+          password: hashedPassword,
+          updatedAt: new Date(),
+        },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          gender: true,
+          phone: true,
+          address: true,
+          userRoles: {
+            select: {
+              roleId: true,
+              role: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+            where: {
+              deletedAt: null,
+            },
+          },
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (e) {
+      throw new HttpException(e.message, 500, {
+        cause: new Error('Some Error'),
+      });
+    }
+  }
+
+  async updateProfile(req: any, updateUserDTO: UpdateUserDTO) {
+    if (updateUserDTO.email) {
+      const user = await this.findByEmail(updateUserDTO.email);
+      if (user && user.id !== req.user.id) {
+        throw new BadRequestException('The email has already exist !');
+      }
+    }
+    return await this.prismaService.user.update({
+      where: {
+        id: req.user.id,
+      },
+      data: {
+        ...updateUserDTO,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        phone: true,
+        address: true,
+        userRoles: {
+          select: {
+            roleId: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          where: {
+            deletedAt: null,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
 }

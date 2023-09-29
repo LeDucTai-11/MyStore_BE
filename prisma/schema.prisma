@@ -27,6 +27,7 @@ model User {
   firstName               String?    @map("first_name")
   lastName                String?    @map("last_name")
   address                 String?
+  phone                   String?
   gender                  Int?       @db.SmallInt
   avatarUrl               String?    @map("avatar_url")
   passwordResetToken      String?    @map("password_reset_token")
