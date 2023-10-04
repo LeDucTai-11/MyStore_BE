@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDTO, UpdateUserDTO } from './dto';
 import * as argon from 'argon2';
 import { Role } from 'src/core/enum/roles.enum';
+import { Pagination } from 'src/core/utils';
 
 @Injectable()
 export class UsersService {
@@ -29,7 +30,7 @@ export class UsersService {
     return user;
   }
 
-  async findAll(queryData) {
+  async findAll(queryData: any) {
     const limit = Number(queryData.limit) || 10;
     const offset = Number(queryData.offset) || 0;
     const query: any = {
@@ -70,7 +71,13 @@ export class UsersService {
       };
       query.where.userRoles = userRoles;
     }
-    return this.prismaService.user.findMany(query);
+    const [total, users] = await Promise.all([
+      this.prismaService.user.count({
+        where: query.where,
+      }),
+      this.prismaService.user.findMany(query),
+    ]);
+    return Pagination.of(limit, offset, total, users);
   }
 
   async findByID(id: string) {
@@ -182,20 +189,15 @@ export class UsersService {
     return user;
   }
 
-  async createUser(createUserDTO: CreateUserDTO) {
+  async createUser(createUserDTO: CreateUserDTO, isUser = true) {
     const hashedPassword = await argon.hash(createUserDTO.password);
+    createUserDTO.password = hashedPassword;
     return this.prismaService.user.create({
       data: {
-        email: createUserDTO.email,
-        username: createUserDTO.username,
-        password: hashedPassword,
-        firstName: createUserDTO.firstName,
-        lastName: createUserDTO.lastName,
-        gender: createUserDTO.gender,
-        address: createUserDTO.address,
+        ...createUserDTO,
         userRoles: {
           create: {
-            roleId: Role.User,
+            roleId: (isUser) ? Role.User : Role.Cashier,
           },
         },
         userCart: {

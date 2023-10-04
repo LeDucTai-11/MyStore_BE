@@ -12,6 +12,7 @@ import { UsersService } from '../users/users.service';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import RoleGuard from 'src/core/guards/roles/roles.guard';
 import { Role } from 'src/core/enum/roles.enum';
+import { CreateUserDTO } from '../users/dto';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -47,5 +48,11 @@ export class AdminController {
   @UseGuards(RoleGuard(Role.Admin))
   findByID(@Param('id') id: string) {
     return this.userService.findByID(id);
+  }
+
+  @Post('/cashiers')
+  @UseGuards(RoleGuard(Role.Admin))
+  createCashier(@Body() body: CreateUserDTO) {
+    return this.userService.createUser(body,false);
   }
 }
