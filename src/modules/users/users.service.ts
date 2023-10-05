@@ -34,7 +34,24 @@ export class UsersService {
     const limit = Number(queryData.limit) || 10;
     const offset = Number(queryData.offset) || 0;
     const query: any = {
-      where: {},
+      where: {
+        ...(queryData.name
+          ? {
+              OR: [
+                {
+                  firstName: {
+                    contains: queryData.name,
+                  },
+                },
+                {
+                  lastName: {
+                    contains: queryData.name,
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
       take: limit,
       skip: offset,
       select: {
@@ -63,6 +80,9 @@ export class UsersService {
         createdAt: true,
       },
     };
+    if (queryData.active !== undefined) {
+      query.where.deletedAt = (queryData.active == "true") ? null : { not: null };
+    }
     if (queryData.role) {
       const userRoles: any = {
         some: {
@@ -197,7 +217,7 @@ export class UsersService {
         ...createUserDTO,
         userRoles: {
           create: {
-            roleId: (isUser) ? Role.User : Role.Cashier,
+            roleId: isUser ? Role.User : Role.Cashier,
           },
         },
         userCart: {

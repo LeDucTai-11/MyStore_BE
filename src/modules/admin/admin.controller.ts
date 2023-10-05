@@ -29,6 +29,18 @@ export class AdminController {
     example: 1,
   })
   @ApiQuery({
+    name: 'name',
+    required: false,
+    type: String,
+    example: 'David',
+  })
+  @ApiQuery({
+    name: 'active',
+    required: false,
+    type: Boolean,
+    example: true,
+  })
+  @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
