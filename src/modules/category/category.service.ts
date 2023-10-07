@@ -4,28 +4,46 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateCategoryDTO, UpdateCategoryDTO } from './dto';
-import { Pagination } from 'src/core/utils';
+import { CreateCategoryDTO, FilterCategoryDto, UpdateCategoryDTO } from './dto';
+import { Pagination, getOrderBy } from 'src/core/utils';
+import { GetAllCategoryOrderByEnum } from 'src/core/enum/category.enum';
 
 @Injectable()
 export class CategoryService {
   constructor(private prismaService: PrismaService) {}
 
-  async findAll(name?: string,limit?: number, offset?: number) {
+  async findAll(queryData: FilterCategoryDto) {
+    const {search,take,skip,order} = queryData;
+    let orderBy = undefined;
+    if(order) {
+      if(GetAllCategoryOrderByEnum.TOTAL_PRODUCTS === order.split(':')[0]) {
+        orderBy = {
+          products: getOrderBy(order)
+        }
+      }else {
+        orderBy = getOrderBy(order);
+      }
+    }
     const query: any = {
       where: {
         name: {
-          contains: name ?? '',
+          contains: search ?? '',
         },
         deletedAt: null,
       },
-      take: limit ?? undefined,
-      skip: offset ?? undefined,
+      take,
+      skip,
+      orderBy: orderBy,
       select: {
         id: true,
         name: true,
         description: true,
         createdAt: true,
+        _count: {
+          select: {
+            products: true
+          }
+        }
       },
     };
     const [total, categories] = await Promise.all([
@@ -34,15 +52,7 @@ export class CategoryService {
       }),
       this.prismaService.category.findMany(query),
     ]);
-    const results = categories.map(async(c) => {
-        const stock = await this.prismaService.product.count({
-            where: {
-                categoryId: c.id
-            }
-        }) ?? 0;
-        return {...c,stock};
-    });
-    return Pagination.of(limit, offset, total, await Promise.all(results));
+    return Pagination.of(take, skip, total, categories);
   }
 
   async findByID(id: string) {

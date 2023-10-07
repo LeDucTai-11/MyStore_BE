@@ -13,10 +13,9 @@ import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import RoleGuard from 'src/core/guards/roles/roles.guard';
 import { Role } from 'src/core/enum/roles.enum';
 import { CreateUserDTO } from '../users/dto';
-import { CreateCategoryDTO, UpdateCategoryDTO } from '../category/dto';
+import { CreateCategoryDTO, FilterCategoryDto, UpdateCategoryDTO } from '../category/dto';
 import { CategoryService } from '../category/category.service';
-import { FilterUserDto } from '../users/dto/filter-user.dto';
-
+import { FilterUserDto } from '../users/dto'; 
 @ApiTags('admin')
 @Controller('admin')
 @ApiBearerAuth()
@@ -27,8 +26,8 @@ export class AdminController {
   ) {}
 
   @Get('/users')
-  @UseGuards(RoleGuard(Role.Admin))
-  findAll(@Query() queryData: FilterUserDto) {
+  // @UseGuards(RoleGuard(Role.Admin))
+  findAllUsers(@Query() queryData: FilterUserDto) {
     return this.userService.findAll(queryData);
   }
 
@@ -57,28 +56,8 @@ export class AdminController {
   }
 
   @Get('/category')
-  @UseGuards(RoleGuard(Role.Admin))
-  @ApiQuery({
-    name: 'name',
-    required: false,
-    type: String,
-    example: 'a',
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    example: 10,
-  })
-  @ApiQuery({
-    name: 'offset',
-    required: false,
-    type: Number,
-    example: 0,
-  })
-  findAllCategories(@Query() queryData: any) {
-    const limit = Number(queryData.limit) || 10;
-    const offset = Number(queryData.offset) || 0;
-    return this.categoryService.findAll(queryData.name, limit, offset);
+  // @UseGuards(RoleGuard(Role.Admin))
+  findAllCategories(@Query() queryData: FilterCategoryDto) {
+    return this.categoryService.findAll(queryData);
   }
 }

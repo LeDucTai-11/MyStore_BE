@@ -3,12 +3,12 @@ import { Prisma } from "@prisma/client";
 import { Type } from "class-transformer";
 import { IsInt, IsOptional, IsString, Min } from "class-validator";
 import { IsOrderQueryParam } from "src/core/decorators/order.decorators";
-import { GetAllUsersOrderByEnum } from "src/core/enum/users.enum";
+import { GetAllCategoryOrderByEnum } from "src/core/enum/category.enum";
 
-export class FilterUserDto {
+export class FilterCategoryDto {
     @ApiPropertyOptional({
-        description: 'Search by FirstName, LastName, Email',
-        example: 'David'
+        description: 'Search by Name of Category',
+        example: 'Đồ uống'
     })
     @IsOptional()
     @IsString()
@@ -35,25 +35,11 @@ export class FilterUserDto {
     take?: number = 10;
 
     @ApiPropertyOptional({
-        description: `Order by keyword. \n\n Available values: ${Object.values(GetAllUsersOrderByEnum)}`,
-        example: `${GetAllUsersOrderByEnum.FIRSTNAME}:${Prisma.SortOrder.asc}`
+        description: `Order by keyword. \n\n Available values: ${Object.values(GetAllCategoryOrderByEnum)}`,
+        example: `${GetAllCategoryOrderByEnum.NAME}:${Prisma.SortOrder.asc}`
     })
     @IsOptional()
     @IsString()
-    @IsOrderQueryParam('order', GetAllUsersOrderByEnum)
+    @IsOrderQueryParam('order', GetAllCategoryOrderByEnum)
     order?: string;
-
-    @ApiPropertyOptional({
-        description: 'Filter by active status',
-        example: true,
-    })
-    @IsOptional()
-    active?: boolean;
-
-    @ApiPropertyOptional({
-        description: 'Filter by roles',
-        example: [1, 2, 3],
-    })
-    @IsOptional()
-    roles?: number[];
 }

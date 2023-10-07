@@ -31,34 +31,34 @@ export class UsersService {
   }
 
   async findAll(queryData: any) {
-    const { limit, offset } = queryData;
+    const { take, skip } = queryData;
     const query: any = {
       where: {
-        ...(queryData.key
+        ...(queryData.search
           ? {
               OR: [
                 {
                   firstName: {
-                    contains: queryData.key,
+                    contains: queryData.search,
                   },
                 },
                 {
                   lastName: {
-                    contains: queryData.key,
+                    contains: queryData.search,
                   },
                 },
                 {
                   email: {
-                    contains: queryData.key,
+                    contains: queryData.search,
                   },
                 },
               ],
             }
           : {}),
       },
-      take: limit,
-      skip: offset,
-      orderBy: queryData.sort ? getOrderBy(queryData.sort) : undefined,
+      take,
+      skip,
+      orderBy: queryData.order ? getOrderBy(queryData.order) : undefined,
       select: {
         id: true,
         email: true,
@@ -107,7 +107,7 @@ export class UsersService {
       }),
       this.prismaService.user.findMany(query),
     ]);
-    return Pagination.of(limit, offset, total, users);
+    return Pagination.of(take, skip, total, users);
   }
 
   async findByID(id: string) {
