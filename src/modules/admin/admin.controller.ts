@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import RoleGuard from 'src/core/guards/roles/roles.guard';
 import { Role } from 'src/core/enum/roles.enum';
 import { CreateUserDTO } from '../users/dto';
+import { FilterUserDto } from '../users/dto/filter-user.dto';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -22,37 +23,7 @@ export class AdminController {
 
   @Get('/users')
   @UseGuards(RoleGuard(Role.Admin))
-  @ApiQuery({
-    name: 'roles',
-    required: false,
-    type: [Number],
-    example: [1,2],
-  })
-  @ApiQuery({
-    name: 'key',
-    required: false,
-    type: String,
-    example: 'David',
-  })
-  @ApiQuery({
-    name: 'active',
-    required: false,
-    type: Boolean,
-    example: true,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    example: 10,
-  })
-  @ApiQuery({
-    name: 'offset',
-    required: false,
-    type: Number,
-    example: 0,
-  })
-  findAll(@Query() queryData: any) {
+  findAll(@Query() queryData: FilterUserDto) {
     return this.userService.findAll(queryData);
   }
 

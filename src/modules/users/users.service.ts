@@ -8,7 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDTO, UpdateUserDTO } from './dto';
 import * as argon from 'argon2';
 import { Role } from 'src/core/enum/roles.enum';
-import { Pagination } from 'src/core/utils';
+import { Pagination, forceDataToArray, getOrderBy } from 'src/core/utils';
 
 @Injectable()
 export class UsersService {
@@ -33,7 +33,6 @@ export class UsersService {
   async findAll(queryData: any) {
     const limit = Number(queryData.limit) || 10;
     const offset = Number(queryData.offset) || 0;
-    const roles = queryData.roles.map((role) => Number(role));
     const query: any = {
       where: {
         ...(queryData.key
@@ -60,6 +59,7 @@ export class UsersService {
       },
       take: limit,
       skip: offset,
+      orderBy: queryData.sort ? getOrderBy(queryData.sort) : undefined,
       select: {
         id: true,
         email: true,
@@ -87,13 +87,16 @@ export class UsersService {
       },
     };
     if (queryData.active !== undefined) {
-      query.where.deletedAt = (queryData.active == "true") ? null : { not: null };
+      query.where.deletedAt = queryData.active == 'true' ? null : { not: null };
     }
     if (queryData.roles) {
+      const roles = forceDataToArray(queryData.roles).map((role) =>
+        Number(role),
+      );
       const userRoles: any = {
         some: {
           roleId: {
-            in: roles
+            in: roles,
           },
         },
       };
@@ -218,6 +221,9 @@ export class UsersService {
   }
 
   async createUser(createUserDTO: CreateUserDTO, isUser = true) {
+    if (await this.findByEmail(createUserDTO.email) || await this.findByUserName(createUserDTO.username)) {
+      throw new BadRequestException('The email or username has already exist !');
+    }
     const hashedPassword = await argon.hash(createUserDTO.password);
     createUserDTO.password = hashedPassword;
     return this.prismaService.user.create({
