@@ -153,6 +153,7 @@ export class CategoryService {
           },
         },
         createdAt: true,
+        updatedAt: true,
       },
     });
   }

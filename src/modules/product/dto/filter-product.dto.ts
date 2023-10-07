@@ -3,12 +3,12 @@ import { Prisma } from "@prisma/client";
 import { Type } from "class-transformer";
 import { IsInt, IsOptional, IsString, Min } from "class-validator";
 import { IsOrderQueryParam } from "src/core/decorators/order.decorators";
-import { GetAllCategoryOrderByEnum } from "src/core/enum/category.enum";
+import { GetAllProductOrderByEnum } from "src/core/enum/products.enum";
 
-export class FilterCategoryDto {
+export class FilterProductDto {
     @ApiPropertyOptional({
-        description: 'Search by Name of Category',
-        example: 'Đồ uống'
+        description: 'Search by Name of Products',
+        example: 'Nước'
     })
     @IsOptional()
     @IsString()
@@ -35,11 +35,18 @@ export class FilterCategoryDto {
     take?: number;
 
     @ApiPropertyOptional({
-        description: `Order by keyword. \n\n Available values: ${Object.values(GetAllCategoryOrderByEnum)}`,
-        example: `${GetAllCategoryOrderByEnum.NAME}:${Prisma.SortOrder.asc}`
+        description: `Order by keyword. \n\n Available values: ${Object.values(GetAllProductOrderByEnum)}`,
+        example: `${GetAllProductOrderByEnum.NAME}:${Prisma.SortOrder.asc}`
     })
     @IsOptional()
     @IsString()
-    @IsOrderQueryParam('order', GetAllCategoryOrderByEnum)
+    @IsOrderQueryParam('order', GetAllProductOrderByEnum)
     order?: string;
+
+    @ApiPropertyOptional({
+        description: 'Filter by categories',
+        example: ['a'],
+    })
+    @IsOptional()
+    categories?: string[];
 }

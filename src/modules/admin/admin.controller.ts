@@ -16,6 +16,8 @@ import { CreateUserDTO } from '../users/dto';
 import { CreateCategoryDTO, FilterCategoryDto, UpdateCategoryDTO } from '../category/dto';
 import { CategoryService } from '../category/category.service';
 import { FilterUserDto } from '../users/dto'; 
+import { CreateProducDTO, FilterProductDto, UpdateProductDTO } from '../product/dto';
+import { ProductService } from '../product/product.service';
 @ApiTags('admin')
 @Controller('admin')
 @ApiBearerAuth()
@@ -23,10 +25,11 @@ export class AdminController {
   constructor(
     private readonly userService: UsersService,
     private readonly categoryService: CategoryService,
+    private readonly productService: ProductService
   ) {}
 
   @Get('/users')
-  // @UseGuards(RoleGuard(Role.Admin))
+  @UseGuards(RoleGuard(Role.Admin))
   findAllUsers(@Query() queryData: FilterUserDto) {
     return this.userService.findAll(queryData);
   }
@@ -45,19 +48,49 @@ export class AdminController {
 
   @Post('/category')
   @UseGuards(RoleGuard(Role.Admin))
-  createCateogry(@Body() body: CreateCategoryDTO) {
+  createCategory(@Body() body: CreateCategoryDTO) {
     return this.categoryService.createCategory(body);
   }
 
   @Patch('/category/:id')
   @UseGuards(RoleGuard(Role.Admin))
-  updateCateogry(@Param('id') id: string, @Body() body: UpdateCategoryDTO) {
+  updateCategory(@Param('id') id: string, @Body() body: UpdateCategoryDTO) {
     return this.categoryService.updateCategory(id, body);
   }
 
   @Get('/category')
-  // @UseGuards(RoleGuard(Role.Admin))
+  @UseGuards(RoleGuard(Role.Admin))
   findAllCategories(@Query() queryData: FilterCategoryDto) {
     return this.categoryService.findAll(queryData);
+  }
+
+  @Get('/category/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  findCategoryByID(@Param('id') id: string) {
+    return this.categoryService.findByID(id);
+  }
+
+  @Get('/products')
+  @UseGuards(RoleGuard(Role.Admin))
+  findAllProducts(@Query() queryData: FilterProductDto) {
+    return this.productService.findAll(queryData);
+  }
+
+  @Get('/products/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  findProductById(@Param('id') id: string) {
+    return this.productService.findByID(id);
+  }
+
+  @Post('/products')
+  @UseGuards(RoleGuard(Role.Admin))
+  createProduct(@Body() body: CreateProducDTO) {
+    return this.productService.createProduct(body);
+  }
+
+  @Patch('/products/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  updateProduct(@Param('id') id: string, @Body() body: UpdateProductDTO) {
+    return this.productService.updateProduct(id, body);
   }
 }
