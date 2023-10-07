@@ -22,7 +22,7 @@ export class FilterUserDto {
     @Type(() => Number)
     @IsInt()
     @Min(0)
-    offset?: number;
+    offset?: number = 0;
 
     @ApiPropertyOptional({
         description: 'Number of records to take and then return the remainder',
@@ -32,7 +32,7 @@ export class FilterUserDto {
     @Type(() => Number)
     @IsInt()
     @Min(1)
-    limit?: number;
+    limit?: number = 10;
 
     @ApiPropertyOptional({
         description: `Order by keyword. \n\n Available values: ${Object.values(GetAllUsersOrderByEnum)}`,

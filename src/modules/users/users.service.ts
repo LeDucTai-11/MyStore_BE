@@ -31,8 +31,7 @@ export class UsersService {
   }
 
   async findAll(queryData: any) {
-    const limit = Number(queryData.limit) || 10;
-    const offset = Number(queryData.offset) || 0;
+    const { limit, offset } = queryData;
     const query: any = {
       where: {
         ...(queryData.key
@@ -221,8 +220,13 @@ export class UsersService {
   }
 
   async createUser(createUserDTO: CreateUserDTO, isUser = true) {
-    if (await this.findByEmail(createUserDTO.email) || await this.findByUserName(createUserDTO.username)) {
-      throw new BadRequestException('The email or username has already exist !');
+    if (
+      (await this.findByEmail(createUserDTO.email)) ||
+      (await this.findByUserName(createUserDTO.username))
+    ) {
+      throw new BadRequestException(
+        'The email or username has already exist !',
+      );
     }
     const hashedPassword = await argon.hash(createUserDTO.password);
     createUserDTO.password = hashedPassword;
