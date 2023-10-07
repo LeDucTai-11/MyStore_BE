@@ -23,13 +23,13 @@ export class AdminController {
   @Get('/users')
   @UseGuards(RoleGuard(Role.Admin))
   @ApiQuery({
-    name: 'role',
+    name: 'roles',
     required: false,
-    type: Number,
-    example: 1,
+    type: [Number],
+    example: [1,2],
   })
   @ApiQuery({
-    name: 'name',
+    name: 'key',
     required: false,
     type: String,
     example: 'David',

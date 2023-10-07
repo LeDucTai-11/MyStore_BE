@@ -39,4 +39,9 @@ export class CreateUserDTO {
     @IsNotEmpty()
     gender: number;
 
+    @ApiProperty({default: "0xxxx"})
+    @IsString()
+    @IsNotEmpty()
+    phone: string;
+
 }

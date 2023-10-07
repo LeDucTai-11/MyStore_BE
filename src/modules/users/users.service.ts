@@ -33,19 +33,25 @@ export class UsersService {
   async findAll(queryData: any) {
     const limit = Number(queryData.limit) || 10;
     const offset = Number(queryData.offset) || 0;
+    const roles = queryData.roles.map((role) => Number(role));
     const query: any = {
       where: {
-        ...(queryData.name
+        ...(queryData.key
           ? {
               OR: [
                 {
                   firstName: {
-                    contains: queryData.name,
+                    contains: queryData.key,
                   },
                 },
                 {
                   lastName: {
-                    contains: queryData.name,
+                    contains: queryData.key,
+                  },
+                },
+                {
+                  email: {
+                    contains: queryData.key,
                   },
                 },
               ],
@@ -83,10 +89,12 @@ export class UsersService {
     if (queryData.active !== undefined) {
       query.where.deletedAt = (queryData.active == "true") ? null : { not: null };
     }
-    if (queryData.role) {
+    if (queryData.roles) {
       const userRoles: any = {
         some: {
-          roleId: Number(queryData.role),
+          roleId: {
+            in: roles
+          },
         },
       };
       query.where.userRoles = userRoles;
