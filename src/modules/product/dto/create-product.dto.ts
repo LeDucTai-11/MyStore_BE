@@ -10,11 +10,6 @@ export class CreateProducDTO {
     @IsOptional()
     description?: string;
 
-    @ApiProperty({required: true,default: 100})
-    @IsNotEmpty()
-    @IsNumber()
-    amount: number;
-
     @ApiProperty({required: true,default: 15000})
     @IsNotEmpty()
     @IsNumber()

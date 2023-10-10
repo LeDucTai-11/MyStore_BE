@@ -13,10 +13,5 @@ export class UpdateProductDTO {
     @ApiProperty({required: false})
     @IsOptional()
     @IsNumber()
-    amount?: number;
-
-    @ApiProperty({required: false})
-    @IsOptional()
-    @IsNumber()
     price?: number;
 }

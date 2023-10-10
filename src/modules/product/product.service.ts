@@ -25,6 +25,7 @@ export class ProductService {
     return this.prismaService.product.create({
       data: {
         ...createProductDTO,
+        amount: 0,
       },
       select: {
         id: true,
