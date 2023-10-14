@@ -11,6 +11,8 @@ import { ConfigModule } from '@nestjs/config';
 import { CategoryModule } from './modules/category/category.module';
 import { ProductModule } from './modules/product/product.module';
 import { HelmetMiddleware, HttpLoggerMiddleware } from './app.middleware';
+import { FilesModule } from './modules/files/files.module';
+import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { HelmetMiddleware, HttpLoggerMiddleware } from './app.middleware';
     PrismaModule,
     CategoryModule,
     ProductModule,
+    FilesModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

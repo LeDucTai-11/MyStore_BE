@@ -26,3 +26,7 @@ export const getOrderBy = (order: string) => {
     [field]: orderDirection,
   };
 };
+
+export const isEnumValue = (enumType: any, value: any) => {
+  return Object.values(enumType).includes(value);
+}

@@ -6,10 +6,12 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
 import RoleGuard from 'src/core/guards/roles/roles.guard';
 import { Role } from 'src/core/enum/roles.enum';
 import { CreateUserDTO } from '../users/dto';
@@ -18,6 +20,9 @@ import { CategoryService } from '../category/category.service';
 import { FilterUserDto } from '../users/dto'; 
 import { CreateProducDTO, FilterProductDto, UpdateProductDTO } from '../product/dto';
 import { ProductService } from '../product/product.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadFileDto } from '../files/dto/upload-file.dto';
+import { FilesService } from '../files/files.service';
 @ApiTags('admin')
 @Controller('admin')
 @ApiBearerAuth()
@@ -25,7 +30,8 @@ export class AdminController {
   constructor(
     private readonly userService: UsersService,
     private readonly categoryService: CategoryService,
-    private readonly productService: ProductService
+    private readonly productService: ProductService,
+    private readonly filesService: FilesService
   ) {}
 
   @Get('/users')
@@ -92,5 +98,16 @@ export class AdminController {
   @UseGuards(RoleGuard(Role.Admin))
   updateProduct(@Param('id') id: string, @Body() body: UpdateProductDTO) {
     return this.productService.updateProduct(id, body);
+  }
+
+  @UseGuards(RoleGuard(Role.Admin))
+  @Post('/files')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadFile(
+    @Body() uploadFileDto: UploadFileDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.filesService.uploadFile(file,uploadFileDto.object);
   }
 }

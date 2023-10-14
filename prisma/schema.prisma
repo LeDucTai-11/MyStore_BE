@@ -58,6 +58,7 @@ model UserRole {
 model Category {
   id          String    @id @default(uuid())
   name        String    @unique
+  image       String?
   description String?
   products    Product[]
   createdAt   DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
@@ -70,6 +71,7 @@ model Category {
 model Product {
   id            String         @id @default(uuid())
   name          String         @unique
+  image         String?
   description   String?
   amount        Int
   price         Int

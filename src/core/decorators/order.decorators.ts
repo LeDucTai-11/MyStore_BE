@@ -1,6 +1,7 @@
 import { BadRequestException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { ValidationOptions, registerDecorator } from "class-validator";
+import { isEnumValue } from "../utils";
 
 export const IsOrderQueryParam = (
     property: string,
@@ -22,10 +23,6 @@ export const IsOrderQueryParam = (
             }
         })
     }
-}
-
-const isEnumValue = (enumType: any, value: any) => {
-    return Object.values(enumType).includes(value);
 }
 
 const isValidOrder = (
