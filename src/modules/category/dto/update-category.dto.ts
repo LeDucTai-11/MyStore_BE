@@ -8,5 +8,9 @@ export class UpdateCategoryDTO {
 
     @ApiProperty({required: false})
     @IsOptional()
+    image?: string;
+
+    @ApiProperty({required: false})
+    @IsOptional()
     description?: string;
 }

@@ -15,6 +15,10 @@ export class UpdateUserDTO {
     @IsOptional()
     lastName?: string;
 
+    @ApiProperty({required: false})
+    @IsOptional()
+    avatarUrl?: string;
+
     @ApiProperty({required: false,default: 1})
     @IsOptional()
     gender?: number;

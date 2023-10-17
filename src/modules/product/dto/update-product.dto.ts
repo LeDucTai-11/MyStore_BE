@@ -8,6 +8,10 @@ export class UpdateProductDTO {
 
     @ApiProperty({required: false})
     @IsOptional()
+    image?: string;
+
+    @ApiProperty({required: false})
+    @IsOptional()
     description?: string;
 
     @ApiProperty({required: false})
