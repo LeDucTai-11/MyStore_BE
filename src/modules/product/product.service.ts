@@ -20,28 +20,25 @@ export class ProductService {
       createProductDTO.categoryId,
     );
     if (!foundCategory || (await this.findByName(createProductDTO.name))) {
-      throw new BadRequestException('The name has already exist !');
+      throw new BadRequestException('The ProductName has already exist !');
     }
-    return this.prismaService.product.create({
-      data: {
-        ...createProductDTO,
-        amount: 0,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        amount: true,
-        price: true,
-        category: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
+    return this.prismaService.$transaction(async (tx) => {
+      const listStores = await tx.store.findMany();
+      const newProduct = await tx.product.create({
+        data: {
+          ...createProductDTO,
         },
-        createdAt: true,
-      },
+      });
+      await Promise.all(
+        listStores.map(async (store) => {
+          await tx.productStore.create({
+            data: {
+              productId: newProduct.id,
+              storeId: store.id,
+            },
+          });
+        }),
+      );
     });
   }
 
