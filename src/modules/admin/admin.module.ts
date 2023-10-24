@@ -6,6 +6,7 @@ import { CategoryService } from '../category/category.service';
 import { ProductService } from '../product/product.service';
 import { FilesService } from '../files/files.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { StoreService } from '../store/store.service';
 
 @Module({
   controllers: [AdminController],
@@ -15,7 +16,8 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
     CategoryService,
     ProductService,
     FilesService,
-    CloudinaryService
+    CloudinaryService,
+    StoreService,
   ],
 })
 export class AdminModule {}

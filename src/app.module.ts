@@ -13,6 +13,7 @@ import { ProductModule } from './modules/product/product.module';
 import { HelmetMiddleware, HttpLoggerMiddleware } from './app.middleware';
 import { FilesModule } from './modules/files/files.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
+import { StoreModule } from './modules/store/store.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
     ProductModule,
     FilesModule,
     CloudinaryModule,
+    StoreModule,
   ],
   controllers: [AppController],
   providers: [AppService],

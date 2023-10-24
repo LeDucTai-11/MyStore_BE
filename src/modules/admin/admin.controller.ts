@@ -23,6 +23,9 @@ import { ProductService } from '../product/product.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadFileDto } from '../files/dto/upload-file.dto';
 import { FilesService } from '../files/files.service';
+import { CreateStoreDTO } from '../store/dto/create-store.dto';
+import { StoreService } from '../store/store.service';
+import { UpdateStoreDTO } from '../store/dto/update-store.dto';
 @ApiTags('admin')
 @Controller('admin')
 @ApiBearerAuth()
@@ -31,7 +34,8 @@ export class AdminController {
     private readonly userService: UsersService,
     private readonly categoryService: CategoryService,
     private readonly productService: ProductService,
-    private readonly filesService: FilesService
+    private readonly filesService: FilesService,
+    private readonly storeService: StoreService,
   ) {}
 
   @Get('/users')
@@ -98,6 +102,24 @@ export class AdminController {
   @UseGuards(RoleGuard(Role.Admin))
   updateProduct(@Param('id') id: string, @Body() body: UpdateProductDTO) {
     return this.productService.updateProduct(id, body);
+  }
+
+  @Get('/stores')
+  @UseGuards(RoleGuard(Role.Admin))
+  findAllStores() {
+    return this.storeService.findAll();
+  }
+
+  @Post('/stores')
+  @UseGuards(RoleGuard(Role.Admin))
+  createStore(@Body() body: CreateStoreDTO) {
+    return this.storeService.createStore(body);
+  }
+
+  @Patch('/stores/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  updateStore(@Param('id') id: string, @Body() body: UpdateStoreDTO) {
+    return this.storeService.updateStore(id, body);
   }
 
   @UseGuards(RoleGuard(Role.Admin))
