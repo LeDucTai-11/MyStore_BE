@@ -14,6 +14,7 @@ import { HelmetMiddleware, HttpLoggerMiddleware } from './app.middleware';
 import { FilesModule } from './modules/files/files.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { StoreModule } from './modules/store/store.module';
+import { ImportOrderModule } from './modules/import-order/import-order.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { StoreModule } from './modules/store/store.module';
     FilesModule,
     CloudinaryModule,
     StoreModule,
+    ImportOrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

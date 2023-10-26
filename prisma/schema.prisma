@@ -103,6 +103,7 @@ model ProductStore {
   storeId            String
   store              Store               @relation(fields: [storeId], references: [id])
   amount             Int                 @default(0)
+  expirtyDate        DateTime?            @map("expiry_date") @db.Date()
   cartProducts       CartProduct[]
   importOrderDetails ImportOrderDetail[]
   orderDetails       OrderDetail[]
@@ -160,6 +161,7 @@ model ImportOrder {
 model ImportOrderDetail {
   id             String       @id @default(uuid())
   amount         Int
+  importPrice    Float        @map("import_price") @db.Double
   importOrderId  String       @map("import_order_id")
   importOrder    ImportOrder  @relation(fields: [importOrderId], references: [id])
   productStoreId String       @map("product_store_id")
@@ -208,6 +210,7 @@ model Order {
 model OrderDetail {
   id             String       @id @default(uuid())
   quantity       Int
+  orderPrice     Float        @map("order_price") @db.Double
   productStoreId String       @map("product_store_id")
   productStore   ProductStore @relation(fields: [productStoreId], references: [id])
   orderId        String       @map("order_id")

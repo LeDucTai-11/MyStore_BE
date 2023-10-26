@@ -7,6 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProducDTO, FilterProductDto, UpdateProductDTO } from './dto';
 import { CategoryService } from '../category/category.service';
 import { Pagination, forceDataToArray, getOrderBy } from 'src/core/utils';
+import { addDays } from 'date-fns';
 
 @Injectable()
 export class ProductService {
@@ -36,6 +37,7 @@ export class ProductService {
             data: {
               productId: newProduct.id,
               storeId: store.id,
+              expirtyDate: new Date(addDays(new Date(), 60)),
             },
           });
         }),
