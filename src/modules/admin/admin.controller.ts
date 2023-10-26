@@ -26,6 +26,8 @@ import { FilesService } from '../files/files.service';
 import { CreateStoreDTO } from '../store/dto/create-store.dto';
 import { StoreService } from '../store/store.service';
 import { UpdateStoreDTO } from '../store/dto/update-store.dto';
+import { CreateImportOrderDTO } from '../import-order/dto/create-import-order.dto';
+import { ImportOrderService } from '../import-order/import-order.service';
 @ApiTags('admin')
 @Controller('admin')
 @ApiBearerAuth()
@@ -36,6 +38,7 @@ export class AdminController {
     private readonly productService: ProductService,
     private readonly filesService: FilesService,
     private readonly storeService: StoreService,
+    private readonly importOrderService: ImportOrderService,
   ) {}
 
   @Get('/users')
@@ -131,5 +134,11 @@ export class AdminController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.filesService.uploadFile(file,uploadFileDto.object);
+  }
+
+  @Post('/import-order')
+  @UseGuards(RoleGuard(Role.Admin))
+  async createImportOrder(@Body() body: CreateImportOrderDTO) {
+    return this.importOrderService.createImportOrder(body);
   }
 }
