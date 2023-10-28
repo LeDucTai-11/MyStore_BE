@@ -52,15 +52,30 @@ export class ImportOrderService {
               productStoreId: ip.id,
             },
           });
-          await tx.productStore.update({
+          const productStore = await tx.productStore.update({
             where: {
               id: ip.id,
             },
             data: {
+              amount: ip.amount,
               expirtyDate: new Date(addDays(new Date(), 60)),
               updatedAt: new Date(),
             },
+            select: {
+              id: true,
+              productId: true,
+              product: true,
+            }
           });
+          await tx.product.update({
+            where: {
+              id: productStore.productId,
+            },
+            data: {
+              amount: productStore.product.amount + ip.amount,
+              updatedAt: new Date()
+            }
+          })
         }),
       );
     });
