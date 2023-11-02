@@ -1,7 +1,14 @@
 version: '3'
 services:
+  app:
+    image: ${REGISTER}:latest
+    ports: 
+      - 80:4000
+    depends_on:
+      - dev-db
   dev-db:
     image: mysql:8.0
+    container_name: mystore_db
     volumes:
       - ./dbdata:/var/lib/mysql
     environment:
@@ -10,9 +17,8 @@ services:
       - MYSQL_PASSWORD=superadmin
       - MYSQL_ROOT_PASSWORD=superadmin
     ports:
-      - 3458:3306
+      - 3306:3306
   redis:
     image: redis
     ports:
       - '6379:6379'
-    restart: always
