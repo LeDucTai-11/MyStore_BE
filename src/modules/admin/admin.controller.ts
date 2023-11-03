@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -107,6 +108,12 @@ export class AdminController {
     return this.productService.updateProduct(id, body);
   }
 
+  @Delete('/products/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  deleteProduct(@Param('id') id: string) {
+    return this.productService.deleteProduct(id);
+  }
+
   @Get('/stores')
   @UseGuards(RoleGuard(Role.Admin))
   findAllStores() {
@@ -117,6 +124,12 @@ export class AdminController {
   @UseGuards(RoleGuard(Role.Admin))
   createStore(@Body() body: CreateStoreDTO) {
     return this.storeService.createStore(body);
+  }
+
+  @Delete('/stores/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  deleteStore(@Param('id') id: string) {
+    return this.storeService.deleteStore(id);
   }
 
   @Patch('/stores/:id')

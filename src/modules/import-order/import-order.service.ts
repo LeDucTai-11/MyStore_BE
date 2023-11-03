@@ -14,6 +14,7 @@ export class ImportOrderService {
         id: {
           in: productStoreIds,
         },
+        deletedAt: null,
       },
       select: {
         id: true,

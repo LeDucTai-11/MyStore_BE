@@ -7,7 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProducDTO, FilterProductDto, UpdateProductDTO } from './dto';
 import { CategoryService } from '../category/category.service';
 import { Pagination, forceDataToArray, getOrderBy } from 'src/core/utils';
-import { addDays } from 'date-fns';
+import { isEmpty } from 'lodash';
 
 @Injectable()
 export class ProductService {
@@ -23,8 +23,16 @@ export class ProductService {
     if (!foundCategory || (await this.findByName(createProductDTO.name))) {
       throw new BadRequestException('The ProductName has already exist !');
     }
+    const listStores:any[] = await this.prismaService.store.findMany({
+      where: {
+        deletedAt: null,
+      },
+    });
+
+    if(isEmpty(listStores)) {
+      throw new BadRequestException('Please create a new Store !');
+    }
     return this.prismaService.$transaction(async (tx) => {
-      const listStores = await tx.store.findMany();
       const newProduct = await tx.product.create({
         data: {
           ...createProductDTO,
@@ -37,7 +45,6 @@ export class ProductService {
             data: {
               productId: newProduct.id,
               storeId: store.id,
-              expirtyDate: new Date(addDays(new Date(), 60)),
             },
           });
         }),
@@ -49,6 +56,7 @@ export class ProductService {
     return await this.prismaService.product.findFirst({
       where: {
         name: name,
+        deletedAt: null,
       },
     });
   }
@@ -68,6 +76,7 @@ export class ProductService {
       select: {
         id: true,
         name: true,
+        image: true,
         description: true,
         amount: true,
         price: true,
@@ -105,6 +114,7 @@ export class ProductService {
       select: {
         id: true,
         name: true,
+        image: true,
         description: true,
         amount: true,
         price: true,
@@ -139,6 +149,7 @@ export class ProductService {
         select: {
           id: true,
           name: true,
+          image: true,
           description: true,
           amount: true,
           price: true,
@@ -152,6 +163,29 @@ export class ProductService {
           createdAt: true,
           updatedAt: true,
         },
+      });
+    }
+  }
+
+  async deleteProduct(id: string) {
+    if (await this.findByID(id)) {
+      return await this.prismaService.$transaction(async (tx) => {
+        await tx.product.update({
+          where: {
+            id: id,
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        });
+        await tx.productStore.updateMany({
+          where: {
+            productId: id,
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        });
       });
     }
   }

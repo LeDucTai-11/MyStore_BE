@@ -18,6 +18,7 @@ export class UsersService {
     const user = await this.prismaService.user.findUnique({
       where: {
         username: userName,
+        deletedAt: null,
       },
       include: {
         userRoles: {
@@ -115,6 +116,7 @@ export class UsersService {
     const user = await this.prismaService.user.findUnique({
       where: {
         id: id,
+        deletedAt: null,
       },
       select: {
         id: true,
@@ -153,6 +155,7 @@ export class UsersService {
     const user = await this.prismaService.user.findUnique({
       where: {
         email: email,
+        deletedAt: null,
       },
       select: {
         id: true,
@@ -190,6 +193,7 @@ export class UsersService {
     const user = await this.prismaService.user.findFirst({
       where: {
         passwordResetToken: resetPasswordToken,
+        deletedAt: null,
       },
       select: {
         id: true,
@@ -284,6 +288,7 @@ export class UsersService {
       return await this.prismaService.user.update({
         where: {
           id: userID,
+          deletedAt: null,
         },
         data: {
           passwordResetToken: resetPasswordToken,
@@ -331,6 +336,7 @@ export class UsersService {
       return await this.prismaService.user.update({
         where: {
           id: userID,
+          deletedAt: null,
         },
         data: {
           password: hashedPassword,
@@ -381,6 +387,7 @@ export class UsersService {
     return await this.prismaService.user.update({
       where: {
         id: req.user.id,
+        deletedAt: null,
       },
       data: {
         ...updateUserDTO,
