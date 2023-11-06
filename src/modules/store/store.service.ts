@@ -7,6 +7,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateStoreDTO } from './dto/create-store.dto';
 import { UpdateStoreDTO } from './dto/update-store.dto';
 import { isEmpty } from 'lodash';
+import { FilterStoreDto } from './dto/filter-store.dto';
+import { Pagination, getOrderBy } from 'src/core/utils';
 
 @Injectable()
 export class StoreService {
@@ -63,12 +65,32 @@ export class StoreService {
     }
   }
 
-  async findAll() {
-    return await this.prismaService.store.findMany({
+  async findAll(queryData: FilterStoreDto) {
+    const { search, take, skip, order } = queryData;
+    const query: any = {
       where: {
+        address: {
+          contains: search ?? '',
+        },
         deletedAt: null,
       },
-    });
+      take,
+      skip,
+      orderBy: order ? getOrderBy(order) : undefined,
+      select: {
+        id: true,
+        address: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    };
+    const [total, stores] = await Promise.all([
+      this.prismaService.store.count({
+        where: query.where,
+      }),
+      this.prismaService.store.findMany(query),
+    ]);
+    return Pagination.of(take, skip, total, stores);
   }
 
   async findByID(id: string) {

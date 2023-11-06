@@ -39,6 +39,7 @@ import { CreateImportOrderDTO } from '../import-order/dto/create-import-order.dt
 import { ImportOrderService } from '../import-order/import-order.service';
 import { CreateVoucherDTO } from '../voucher/dto/create-voucher.dto';
 import { VoucherService } from '../voucher/voucher.service';
+import { FilterStoreDto } from '../store/dto/filter-store.dto';
 @ApiTags('admin')
 @Controller('admin')
 @ApiBearerAuth()
@@ -127,8 +128,8 @@ export class AdminController {
 
   @Get('/stores')
   @UseGuards(RoleGuard(Role.Admin))
-  findAllStores() {
-    return this.storeService.findAll();
+  findAllStores(@Query() queryData: FilterStoreDto) {
+    return this.storeService.findAll(queryData);
   }
 
   @Post('/stores')
