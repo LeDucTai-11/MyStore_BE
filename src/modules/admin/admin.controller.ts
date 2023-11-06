@@ -16,10 +16,18 @@ import { ApiBearerAuth, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
 import RoleGuard from 'src/core/guards/roles/roles.guard';
 import { Role } from 'src/core/enum/roles.enum';
 import { CreateUserDTO } from '../users/dto';
-import { CreateCategoryDTO, FilterCategoryDto, UpdateCategoryDTO } from '../category/dto';
+import {
+  CreateCategoryDTO,
+  FilterCategoryDto,
+  UpdateCategoryDTO,
+} from '../category/dto';
 import { CategoryService } from '../category/category.service';
-import { FilterUserDto } from '../users/dto'; 
-import { CreateProducDTO, FilterProductDto, UpdateProductDTO } from '../product/dto';
+import { FilterUserDto } from '../users/dto';
+import {
+  CreateProducDTO,
+  FilterProductDto,
+  UpdateProductDTO,
+} from '../product/dto';
 import { ProductService } from '../product/product.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadFileDto } from '../files/dto/upload-file.dto';
@@ -29,6 +37,8 @@ import { StoreService } from '../store/store.service';
 import { UpdateStoreDTO } from '../store/dto/update-store.dto';
 import { CreateImportOrderDTO } from '../import-order/dto/create-import-order.dto';
 import { ImportOrderService } from '../import-order/import-order.service';
+import { CreateVoucherDTO } from '../voucher/dto/create-voucher.dto';
+import { VoucherService } from '../voucher/voucher.service';
 @ApiTags('admin')
 @Controller('admin')
 @ApiBearerAuth()
@@ -40,6 +50,7 @@ export class AdminController {
     private readonly filesService: FilesService,
     private readonly storeService: StoreService,
     private readonly importOrderService: ImportOrderService,
+    private readonly voucherService: VoucherService,
   ) {}
 
   @Get('/users')
@@ -146,12 +157,18 @@ export class AdminController {
     @Body() uploadFileDto: UploadFileDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.filesService.uploadFile(file,uploadFileDto.object);
+    return this.filesService.uploadFile(file, uploadFileDto.object);
   }
 
   @Post('/import-order')
   @UseGuards(RoleGuard(Role.Admin))
   async createImportOrder(@Body() body: CreateImportOrderDTO) {
     return this.importOrderService.createImportOrder(body);
+  }
+
+  @Post('/voucher')
+  @UseGuards(RoleGuard(Role.Admin))
+  async createVoucher(@Body() body: CreateVoucherDTO) {
+    return this.voucherService.createVoucher(body);
   }
 }

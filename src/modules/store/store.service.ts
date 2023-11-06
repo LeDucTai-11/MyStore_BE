@@ -18,7 +18,6 @@ export class StoreService {
         address: body.address,
       },
     });
-    console.log(foundedStore);
 
     if (foundedStore) {
       throw new BadRequestException('The name of Store has already existed');

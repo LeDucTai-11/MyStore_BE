@@ -103,7 +103,7 @@ model ProductStore {
   storeId            String
   store              Store               @relation(fields: [storeId], references: [id])
   amount             Int                 @default(0)
-  expirtyDate        DateTime?            @map("expiry_date") @db.Date()
+  expirtyDate        DateTime?           @map("expiry_date") @db.Date()
   cartProducts       CartProduct[]
   importOrderDetails ImportOrderDetail[]
   orderDetails       OrderDetail[]
@@ -133,6 +133,8 @@ model CartProduct {
   productStoreId String       @map("product_store_id")
   productStore   ProductStore @relation(fields: [productStoreId], references: [id])
   createdAt      DateTime     @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  quantity       Int
+  price          Float        @db.Double
   updatedAt      DateTime?    @map("updated_at") @db.Timestamp()
   deletedAt      DateTime?    @map("deleted_at") @db.Timestamp()
 
@@ -174,16 +176,16 @@ model ImportOrderDetail {
 }
 
 model Voucher {
-  id              String    @id @default(uuid())
-  minValueOrder   Int?      @map("min_value_order")
-  discountValue   Int?      @map("discount_value")
-  discountPercent Int?      @map("discount_percent")
-  startDate       DateTime? @map("start_date") @db.Timestamp()
-  endDate         DateTime? @map("end_date") @db.Timestamp()
-  orders          Order[]
-  createdAt       DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
-  updatedAt       DateTime? @map("updated_at") @db.Timestamp()
-  deletedAt       DateTime? @map("deleted_at") @db.Timestamp()
+  id            String    @id @default(uuid())
+  minValueOrder Int?      @map("min_value_order")
+  type          String
+  discountValue Int       @map("discount_value")
+  startDate     DateTime? @map("start_date") @db.Date()
+  endDate       DateTime? @map("end_date") @db.Date()
+  orders        Order[]
+  createdAt     DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt     DateTime? @map("updated_at") @db.Timestamp()
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamp()
 
   @@map("voucher")
 }

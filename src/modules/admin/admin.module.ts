@@ -8,6 +8,7 @@ import { FilesService } from '../files/files.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { StoreService } from '../store/store.service';
 import { ImportOrderService } from '../import-order/import-order.service';
+import { VoucherService } from '../voucher/voucher.service';
 
 @Module({
   controllers: [AdminController],
@@ -19,7 +20,8 @@ import { ImportOrderService } from '../import-order/import-order.service';
     FilesService,
     CloudinaryService,
     StoreService,
-    ImportOrderService
+    ImportOrderService,
+    VoucherService
   ],
 })
 export class AdminModule {}

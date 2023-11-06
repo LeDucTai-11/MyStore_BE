@@ -15,6 +15,8 @@ import { FilesModule } from './modules/files/files.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { StoreModule } from './modules/store/store.module';
 import { ImportOrderModule } from './modules/import-order/import-order.module';
+import { CartModule } from './modules/cart/cart.module';
+import { VoucherModule } from './modules/voucher/voucher.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { ImportOrderModule } from './modules/import-order/import-order.module';
     CloudinaryModule,
     StoreModule,
     ImportOrderModule,
+    CartModule,
+    VoucherModule,
   ],
   controllers: [AppController],
   providers: [AppService],
