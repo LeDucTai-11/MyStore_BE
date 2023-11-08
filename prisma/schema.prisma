@@ -20,24 +20,25 @@ model Role {
 }
 
 model User {
-  id                      String     @id @default(uuid())
-  email                   String?    @unique
-  username                String?    @unique
+  id                      String         @id @default(uuid())
+  email                   String?        @unique
+  username                String?        @unique
   password                String?
-  firstName               String?    @map("first_name")
-  lastName                String?    @map("last_name")
+  firstName               String?        @map("first_name")
+  lastName                String?        @map("last_name")
   address                 String?
   phone                   String?
-  gender                  Int?       @db.SmallInt
-  avatarUrl               String?    @map("avatar_url")
-  passwordResetToken      String?    @map("password_reset_token")
-  passwordResetExpiration DateTime?  @map("password_reset_expiration") @db.Timestamp()
+  gender                  Int?           @db.SmallInt
+  avatarUrl               String?        @map("avatar_url")
+  passwordResetToken      String?        @map("password_reset_token")
+  passwordResetExpiration DateTime?      @map("password_reset_expiration") @db.Timestamp()
   userRoles               UserRole[]
   userCart                Cart?
   orders                  Order[]
-  createdAt               DateTime   @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
-  updatedAt               DateTime?  @map("updated_at") @db.Timestamp()
-  deletedAt               DateTime?  @map("deleted_at") @db.Timestamp()
+  createdAt               DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt               DateTime?      @map("updated_at") @db.Timestamp()
+  deletedAt               DateTime?      @map("deleted_at") @db.Timestamp()
+  OrderRequest            OrderRequest[]
 
   @@map("user")
 }
@@ -81,6 +82,7 @@ model Product {
   createdAt     DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
   updatedAt     DateTime?      @map("updated_at") @db.Timestamp()
   deletedAt     DateTime?      @map("deleted_at") @db.Timestamp()
+  CartProduct   CartProduct[]
 
   @@map("product")
 }
@@ -88,6 +90,7 @@ model Product {
 model Store {
   id            String         @id @default(uuid())
   address       String?
+  hotline       String?
   productStores ProductStore[]
   createdAt     DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
   updatedAt     DateTime?      @map("updated_at") @db.Timestamp()
@@ -104,7 +107,6 @@ model ProductStore {
   store              Store               @relation(fields: [storeId], references: [id])
   amount             Int                 @default(0)
   expirtyDate        DateTime?           @map("expiry_date") @db.Date()
-  cartProducts       CartProduct[]
   importOrderDetails ImportOrderDetail[]
   orderDetails       OrderDetail[]
   createdAt          DateTime            @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
@@ -127,16 +129,16 @@ model Cart {
 }
 
 model CartProduct {
-  id             String       @id @default(uuid())
-  cartId         String       @map("cart_id")
-  cart           Cart         @relation(fields: [cartId], references: [id])
-  productStoreId String       @map("product_store_id")
-  productStore   ProductStore @relation(fields: [productStoreId], references: [id])
-  createdAt      DateTime     @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
-  quantity       Int
-  price          Float        @db.Double
-  updatedAt      DateTime?    @map("updated_at") @db.Timestamp()
-  deletedAt      DateTime?    @map("deleted_at") @db.Timestamp()
+  id        String    @id @default(uuid())
+  cartId    String    @map("cart_id")
+  cart      Cart      @relation(fields: [cartId], references: [id])
+  productId String    @map("product_id")
+  product   Product   @relation(fields: [productId], references: [id])
+  createdAt DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  quantity  Int
+  price     Float     @db.Double
+  updatedAt DateTime? @map("updated_at") @db.Timestamp()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp()
 
   @@map("cart_product")
 }
@@ -193,12 +195,12 @@ model Voucher {
 model Order {
   id           String         @id @default(uuid())
   total        Float          @db.Double
-  shipping     Float          @db.Double
+  shipping     Float?         @default(0) @db.Double
   address      String?
   createdBy    String         @map("created_by")
   user         User           @relation(fields: [createdBy], references: [id])
-  voucherId    String         @map("voucher_id")
-  voucher      Voucher        @relation(fields: [voucherId], references: [id])
+  voucherId    String?        @map("voucher_id")
+  voucher      Voucher?       @relation(fields: [voucherId], references: [id])
   orderRequest OrderRequest[]
   orderDetails OrderDetail[]
   bills        Bill[]
@@ -226,11 +228,18 @@ model OrderDetail {
 
 model OrderRequest {
   id              String        @id @default(uuid())
-  quantity        Int
+  createdBy       String        @map("created_by")
+  user            User          @relation(fields: [createdBy], references: [id])
+  typeOfRequest   String        @map("type_of_request")
+  approvedAt      DateTime?     @map("aprroved_at") @db.Timestamp()
+  approvedBy      String?       @map("approved_by")
+  canceledAt      DateTime?     @map("canceled_at") @db.Timestamp()
+  canceledBy      String?       @map("canceled_by")
   requestStatusId Int           @map("request_status_id")
   requestStatus   RequestStatus @relation(fields: [requestStatusId], references: [id])
-  orderId         String        @map("order_id")
-  order           Order         @relation(fields: [orderId], references: [id])
+  orderId         String?       @map("order_id")
+  order           Order?        @relation(fields: [orderId], references: [id])
+  metadata        Json?         @map("metadata") @db.Json
   createdAt       DateTime      @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
   updatedAt       DateTime?     @map("updated_at") @db.Timestamp()
   deletedAt       DateTime?     @map("deleted_at") @db.Timestamp()

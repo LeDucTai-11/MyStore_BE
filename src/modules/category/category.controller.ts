@@ -1,6 +1,5 @@
-import { Controller, Get, Param, Patch, Query } from '@nestjs/common';
-import { ApiQuery, ApiTags } from '@nestjs/swagger';
-import { query } from 'express';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { CategoryService } from './category.service';
 import { FilterCategoryDto } from './dto';
 

@@ -8,7 +8,9 @@ export class ImportOrderService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async createImportOrder(body: CreateImportOrderDTO) {
-    const productStoreIds = body.importOrderDetails.map((x) => x.id);
+    const productStoreIds = body.importOrderDetails.map(
+      (x) => x.productStoreId,
+    );
     const productStores = await this.prismaService.productStore.findMany({
       where: {
         id: {
@@ -27,11 +29,12 @@ export class ImportOrderService {
 
     return this.prismaService.$transaction(async (tx) => {
       const importPrices = body.importOrderDetails.map((x) => {
-        const productPrice = productStores.find((p) => p.id === x.id).product
-          .price;
+        const productPrice = productStores.find(
+          (p) => p.id === x.productStoreId,
+        ).product.price;
         return {
           ...x,
-          productPrice: productPrice / 2 * x.amount,
+          productPrice: (productPrice / 2) * x.amount,
         };
       });
       const totalImportPrices = importPrices.reduce((acc, x) => {
@@ -50,23 +53,29 @@ export class ImportOrderService {
               amount: ip.amount,
               importPrice: ip.productPrice,
               importOrderId: importOrder.id,
-              productStoreId: ip.id,
+              productStoreId: ip.productStoreId,
             },
           });
-          const productStore = await tx.productStore.update({
+          const productStore = await tx.productStore.findFirst({
             where: {
-              id: ip.id,
-            },
-            data: {
-              amount: ip.amount,
-              expirtyDate: new Date(addDays(new Date(), 60)),
-              updatedAt: new Date(),
+              id: ip.productStoreId,
             },
             select: {
               id: true,
               productId: true,
               product: true,
-            }
+              amount: true,
+            },
+          });
+          await tx.productStore.update({
+            where: {
+              id: ip.productStoreId,
+            },
+            data: {
+              amount: ip.amount + productStore.amount,
+              expirtyDate: new Date(addDays(new Date(), 60)),
+              updatedAt: new Date(),
+            },
           });
           await tx.product.update({
             where: {
@@ -74,9 +83,9 @@ export class ImportOrderService {
             },
             data: {
               amount: productStore.product.amount + ip.amount,
-              updatedAt: new Date()
-            }
-          })
+              updatedAt: new Date(),
+            },
+          });
         }),
       );
     });

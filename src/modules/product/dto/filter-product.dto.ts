@@ -49,4 +49,11 @@ export class FilterProductDto {
     })
     @IsOptional()
     categories?: string[];
+
+    @ApiPropertyOptional({
+        description: 'Filter by store',
+        example: 'storeId',
+    })
+    @IsOptional()
+    storeId?: string;
 }

@@ -8,10 +8,6 @@ export class AddProductCartDTO {
     productId: string;
 
     @ApiProperty()
-    @IsNotEmpty()
-    storeId: string;
-
-    @ApiProperty()
     @Type(() => Number)
     @IsInt()
     @Min(1)

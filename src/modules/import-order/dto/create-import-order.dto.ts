@@ -13,7 +13,7 @@ export class CreateImportOrderDTO {
 export class ImportProductStoreDTO {
     @IsString()
     @IsNotEmpty()
-    id: string;
+    productStoreId: string;
 
     @IsNotEmpty()
     @Type(() => Number)

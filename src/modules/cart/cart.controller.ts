@@ -1,8 +1,17 @@
-import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { CartService } from './cart.service';
 import { JwtAuthGuard } from 'src/core/guards/jwt/jwt.guard';
 import { AddProductCartDTO } from './dto/add-product-cart.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CheckInOfStockStoreDto } from './dto/check-in-stock-store.dto';
 
 @ApiTags('cart')
 @Controller('cart')
@@ -18,7 +27,10 @@ export class CartController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  async findCart(@Request() req: any) {
-    return await this.cartService.findByReq(req);
+  async findCart(
+    @Request() req: any,
+    @Query() queryData: CheckInOfStockStoreDto,
+  ) {
+    return await this.cartService.findByReq(req, queryData);
   }
 }

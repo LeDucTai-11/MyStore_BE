@@ -8,12 +8,14 @@ import { CreateProducDTO, FilterProductDto, UpdateProductDTO } from './dto';
 import { CategoryService } from '../category/category.service';
 import { Pagination, forceDataToArray, getOrderBy } from 'src/core/utils';
 import { isEmpty } from 'lodash';
+import { StoreService } from '../store/store.service';
 
 @Injectable()
 export class ProductService {
   constructor(
-    private prismaService: PrismaService,
-    private categoryService: CategoryService,
+    private readonly prismaService: PrismaService,
+    private readonly categoryService: CategoryService,
+    private readonly storeService: StoreService
   ) {}
 
   async createProduct(createProductDTO: CreateProducDTO) {
@@ -23,13 +25,13 @@ export class ProductService {
     if (!foundCategory || (await this.findByName(createProductDTO.name))) {
       throw new BadRequestException('The ProductName has already exist !');
     }
-    const listStores:any[] = await this.prismaService.store.findMany({
+    const listStores: any[] = await this.prismaService.store.findMany({
       where: {
         deletedAt: null,
       },
     });
 
-    if(isEmpty(listStores)) {
+    if (isEmpty(listStores)) {
       throw new BadRequestException('Please create a new Store !');
     }
     return this.prismaService.$transaction(async (tx) => {
@@ -62,7 +64,12 @@ export class ProductService {
   }
 
   async findAll(queryData: FilterProductDto) {
-    const { search, take, skip, order, categories } = queryData;
+    const { search, take, skip, order, categories, storeId } = queryData;
+
+    if(storeId) {
+      await this.storeService.findByID(storeId);
+    }
+
     const query: any = {
       where: {
         name: {
@@ -87,6 +94,7 @@ export class ProductService {
             description: true,
           },
         },
+        productStores: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -96,12 +104,24 @@ export class ProductService {
         in: forceDataToArray(categories),
       };
     }
-    const [total, products] = await Promise.all([
+    let [total, products] = await Promise.all([
       this.prismaService.product.count({
         where: query.where,
       }),
       this.prismaService.product.findMany(query),
     ]);
+    products = products.map((p) => {
+      let productStore = null;
+      if(storeId) {
+        productStore = p['productStores']?.find((x) => x.storeId === storeId && x.deletedAt === null);
+      }
+      return {
+        ...p,
+        productStores: undefined,
+        productStore: productStore ?? undefined,
+        amount: (productStore) ? productStore.amount : p.amount
+      };
+    });
     return Pagination.of(take, skip, total, products);
   }
 
