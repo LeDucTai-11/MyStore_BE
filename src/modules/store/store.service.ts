@@ -17,13 +17,13 @@ export class StoreService {
   async createStore(body: CreateStoreDTO) {
     const foundedStore = await this.prismaService.store.findFirst({
       where: {
-        OR: [{ address: body.address }, { hotline: body.hotline }],
+        address: body.address
       },
     });
 
     if (foundedStore) {
       throw new BadRequestException(
-        'The ADDRESS or HOTLINE of Store has already existed',
+        'The ADDRESS of Store has already existed',
       );
     }
     const listProducts = await this.prismaService.product.findMany({
@@ -35,8 +35,9 @@ export class StoreService {
       return await this.prismaService.store.create({
         data: body,
       });
-    return this.prismaService.$transaction(async (tx) => {
-      const newStore = await tx.store.create({
+    let newStore = null;
+    await this.prismaService.$transaction(async (tx) => {
+      newStore = await tx.store.create({
         data: body,
       });
       await Promise.all(
@@ -50,6 +51,11 @@ export class StoreService {
         }),
       );
     });
+    return {
+      success: true,
+      message: "Transaction completed successfully.",
+      newStore,
+    }
   }
 
   async updateStore(id: string, body: UpdateStoreDTO) {

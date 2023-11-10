@@ -38,8 +38,9 @@ export class ProductService {
     if (isEmpty(listStores)) {
       throw new BadRequestException('Please create a new Store !');
     }
-    return this.prismaService.$transaction(async (tx) => {
-      const newProduct = await tx.product.create({
+    let newProduct = null;
+    await this.prismaService.$transaction(async (tx) => {
+      newProduct = await tx.product.create({
         data: {
           ...createProductDTO,
           amount: 0,
@@ -56,6 +57,11 @@ export class ProductService {
         }),
       );
     });
+    return {
+      success: true,
+      message: "Transaction completed successfully.",
+      newProduct,
+    }
   }
 
   async findByName(name: string) {

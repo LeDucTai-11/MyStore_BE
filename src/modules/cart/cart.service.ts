@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AddProductCartDTO } from './dto/add-product-cart.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { th } from 'date-fns/locale';
@@ -18,27 +18,71 @@ export class CartService {
     const { productId, quantity } = body;
     const product = await this.productService.findByID(productId);
 
-    const foundCart = await this.prismaService.cart.findFirst({
-      where: {
-        createdBy: req.user.id,
-        deletedAt: null,
-      },
-    });
-    if (!foundCart) {
-      throw new NotFoundException(`Cart not found`);
+    const foundCart = await this.findCart(req);
+    const foundCartProduct = foundCart.cartProducts.find(
+      (cp) => cp.productId === productId && cp.deletedAt === null,
+    );
+    if (foundCartProduct) {
+      return this.prismaService.cartProduct.update({
+        where: {
+          id: foundCartProduct.id,
+        },
+        data: {
+          quantity: foundCartProduct.quantity + quantity,
+          price: foundCartProduct.price + product.price * quantity,
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      return this.prismaService.cartProduct.create({
+        data: {
+          cartId: foundCart.id,
+          productId: productId,
+          quantity,
+          price: product.price * quantity,
+        },
+      });
     }
-    return this.prismaService.cartProduct.create({
-      data: {
-        cartId: foundCart.id,
-        productId: productId,
-        quantity,
-        price: product.price * quantity,
-      },
-    });
+  }
+
+  async removeProduct(req: any, body: AddProductCartDTO) {
+    const { productId, quantity } = body;
+    const product = await this.productService.findByID(productId);
+
+    const foundCart = await this.findCart(req);
+    const foundCartProduct = foundCart.cartProducts.find(
+      (cp) => cp.productId === productId && cp.deletedAt === null,
+    );
+    if(!foundCartProduct) {
+      throw new NotFoundException(`Product not found in Cart`);
+    }else {
+      if(quantity > foundCartProduct.quantity) {
+        throw new BadRequestException(`The number of products to be deleted is greater than in the shopping cart`);
+      }
+      return this.prismaService.cartProduct.update({
+        where: {
+          id: foundCartProduct.id,
+        },
+        data: {
+          quantity: foundCartProduct.quantity - quantity,
+          price: foundCartProduct.price - product.price * quantity,
+          updatedAt: new Date(),
+        },
+      });
+    }
+  }
+
+  async clearCart(req: any) {
+    const foundCart = await this.findCart(req);
+    return this.prismaService.cartProduct.deleteMany({
+      where: {
+        cartId: foundCart.id
+      }
+    })
   }
 
   async findByReq(req: any, queryData: CheckInOfStockStoreDto) {
-    const {storeId} = queryData;
+    const { storeId } = queryData;
     await this.storeService.findByID(storeId);
     const foundCart = await this.prismaService.cart.findFirst({
       where: {
@@ -50,6 +94,7 @@ export class CartService {
         cartProducts: {
           select: {
             id: true,
+            product: true,
             productId: true,
             quantity: true,
             price: true,
@@ -58,6 +103,9 @@ export class CartService {
         createdAt: true,
       },
     });
+    if (!foundCart) {
+      throw new NotFoundException(`Cart not found`);
+    }
     const result = foundCart.cartProducts.map(async (x) => {
       const productStore = await this.prismaService.productStore.findFirst({
         where: {
@@ -67,10 +115,28 @@ export class CartService {
       });
       return {
         ...x,
+        image: x.product.image,
         inOfStock: productStore.amount >= x.quantity,
         productStore: productStore,
       };
     });
     return Promise.all(result);
+  }
+
+  async findCart(req: any) {
+    const foundCart = await this.prismaService.cart.findFirst({
+      where: {
+        createdBy: req.user.id,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        cartProducts: true,
+      },
+    });
+    if (!foundCart) {
+      throw new NotFoundException(`Cart not found`);
+    }
+    return foundCart;
   }
 }

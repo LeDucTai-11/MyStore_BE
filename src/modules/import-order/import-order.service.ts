@@ -27,7 +27,7 @@ export class ImportOrderService {
       throw new NotFoundException('One or more productStores not found');
     }
 
-    return this.prismaService.$transaction(async (tx) => {
+    await this.prismaService.$transaction(async (tx) => {
       const importPrices = body.importOrderDetails.map((x) => {
         const productPrice = productStores.find(
           (p) => p.id === x.productStoreId,
@@ -89,5 +89,9 @@ export class ImportOrderService {
         }),
       );
     });
+    return {
+      success: true,
+      message: "Transaction completed successfully.",
+    }
   }
 }
