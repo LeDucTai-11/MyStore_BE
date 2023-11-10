@@ -9,13 +9,17 @@ import { CategoryService } from '../category/category.service';
 import { Pagination, forceDataToArray, getOrderBy } from 'src/core/utils';
 import { isEmpty } from 'lodash';
 import { StoreService } from '../store/store.service';
+import { ExportProductStoreDTO } from './dto/export-product-store.dto';
+import { ExportFileService } from '../export-file/export-file.service';
+import { ResponseProductStoreDTO } from './dto/response-product-store.dto';
 
 @Injectable()
 export class ProductService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly categoryService: CategoryService,
-    private readonly storeService: StoreService
+    private readonly storeService: StoreService,
+    private readonly exportFileService: ExportFileService
   ) {}
 
   async createProduct(createProductDTO: CreateProducDTO) {
@@ -66,7 +70,7 @@ export class ProductService {
   async findAll(queryData: FilterProductDto) {
     const { search, take, skip, order, categories, storeId } = queryData;
 
-    if(storeId) {
+    if (storeId) {
       await this.storeService.findByID(storeId);
     }
 
@@ -112,14 +116,16 @@ export class ProductService {
     ]);
     products = products.map((p) => {
       let productStore = null;
-      if(storeId) {
-        productStore = p['productStores']?.find((x) => x.storeId === storeId && x.deletedAt === null);
+      if (storeId) {
+        productStore = p['productStores']?.find(
+          (x) => x.storeId === storeId && x.deletedAt === null,
+        );
       }
       return {
         ...p,
         productStores: undefined,
         productStore: productStore ?? undefined,
-        amount: (productStore) ? productStore.amount : p.amount
+        amount: productStore ? productStore.amount : p.amount,
       };
     });
     return Pagination.of(take, skip, total, products);
@@ -156,35 +162,39 @@ export class ProductService {
   }
 
   async updateProduct(id: string, updateProductDTO: UpdateProductDTO) {
-    const foundProduct = await this.findByID(id);
-    if (foundProduct) {
-      return await this.prismaService.product.update({
-        where: {
-          id,
-        },
-        data: {
-          ...updateProductDTO,
-          updatedAt: new Date(),
-        },
-        select: {
-          id: true,
-          name: true,
-          image: true,
-          description: true,
-          amount: true,
-          price: true,
-          category: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-            },
-          },
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+    await this.findByID(id);
+    if (updateProductDTO.name) {
+      const foundProduct = await this.findByName(updateProductDTO.name);
+      if (foundProduct && foundProduct.id !== id) {
+        throw new BadRequestException('The name of Product has already exist');
+      }
     }
+    return await this.prismaService.product.update({
+      where: {
+        id,
+      },
+      data: {
+        ...updateProductDTO,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        description: true,
+        amount: true,
+        price: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 
   async deleteProduct(id: string) {
@@ -208,5 +218,88 @@ export class ProductService {
         });
       });
     }
+  }
+
+  async findByStoreID(storeID: string) {
+    await this.storeService.findByID(storeID);
+    const productStores = await this.prismaService.productStore.findMany({
+      where: {
+        storeId: storeID,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        product: {
+          select: {
+            name: true,
+          }
+        },
+      }
+    });
+    const datas: ResponseProductStoreDTO[] = productStores.map((p) => {
+      const res: ResponseProductStoreDTO = {
+        id: p.id,
+        productName: p.product.name,
+      }
+      return res;
+    })
+    return datas;
+  }
+
+  async exportProductStoresToCSV(data: ResponseProductStoreDTO[]) {
+    const fields = [
+      {
+        label: 'ProductStoreID',
+        value: 'id',
+      },
+      {
+        label: 'ProductName',
+        value: 'productName',
+      },
+      {
+        label: 'QuantityImport',
+        value: '',
+      }
+    ];
+    return this.exportFileService.exportToCSV(data, fields);
+  }
+
+  async exportProductStoresToExcel(data: ResponseProductStoreDTO[]) {
+    const fields = [
+      {
+        header: 'ProductStoreID',
+        key: 'id',
+        width: 30,
+      },
+      {
+        header: 'ProductName',
+        key: 'productName',
+        width: 30,
+      },
+      {
+        header: 'QuantityImport',
+        key: '',
+        width: 30,
+      }
+    ];
+    return await this.exportFileService.exportToExcel(data, fields, 'ProductStores');
+  }
+
+  async exportProductStoresToPDF(data: ResponseProductStoreDTO[]) {
+    const fields = [
+      'ProductStoreID',
+      'ProductName',
+      'QuantityImport'
+    ];
+    const dataExport = data.map((row) => [
+      row.id,
+      row.productName,
+      ''
+    ]);
+    return await this.exportFileService.exportToPDF(
+      dataExport,
+      fields,
+      'ProductStores',
+    );
   }
 }

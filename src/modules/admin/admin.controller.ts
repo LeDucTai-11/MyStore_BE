@@ -7,12 +7,19 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { UsersService } from '../users/users.service';
-import { ApiBearerAuth, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import RoleGuard from 'src/core/guards/roles/roles.guard';
 import { Role } from 'src/core/enum/roles.enum';
 import { CreateUserDTO } from '../users/dto';
@@ -40,6 +47,10 @@ import { ImportOrderService } from '../import-order/import-order.service';
 import { CreateVoucherDTO } from '../voucher/dto/create-voucher.dto';
 import { VoucherService } from '../voucher/voucher.service';
 import { FilterStoreDto } from '../store/dto/filter-store.dto';
+import { ExportProductStoreDTO } from '../product/dto/export-product-store.dto';
+import { ExportType } from 'src/core/enum/exportType.enum';
+import { ResponseProductStoreDTO } from '../product/dto/response-product-store.dto';
+
 @ApiTags('admin')
 @Controller('admin')
 @ApiBearerAuth()
@@ -126,10 +137,59 @@ export class AdminController {
     return this.productService.deleteProduct(id);
   }
 
+  @Get('/products/stores/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  @ApiOkResponse({
+    type: ResponseProductStoreDTO,
+  })
+  async exportProductStores(
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Query() queryData: ExportProductStoreDTO,
+  ) {
+    const productStores = await this.productService.findByStoreID(id);
+    if (queryData.exportType === ExportType.CSV) {
+      const filePath = `product-stores-${new Date().valueOf().toString()}.csv`;
+      const dataCSV = await this.productService.exportProductStoresToCSV(
+        productStores,
+      );
+      res.header('Content-Type', 'text/csv');
+      res.attachment(filePath);
+      return res.status(200).send(dataCSV);
+    } else if (queryData.exportType === ExportType.EXCEL) {
+      const filePath = `product-stores-${new Date().valueOf().toString()}.xlsx`;
+      const streamBuffer = await this.productService.exportProductStoresToExcel(
+        productStores,
+      );
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.attachment(filePath);
+      return streamBuffer.pipe(res);
+    } else if (queryData.exportType === ExportType.PDF) {
+      const filePath = `product-stores-${new Date().valueOf().toString()}.pdf`;
+      const pdfDoc = await this.productService.exportProductStoresToPDF(
+        productStores,
+      );
+      res.setHeader('Content-Type', 'application/pdf');
+      res.attachment(filePath);
+      pdfDoc.pipe(res);
+      return pdfDoc.end();
+    }
+    return res.status(200).json(productStores);
+  }
+
   @Get('/stores')
   @UseGuards(RoleGuard(Role.Admin))
   findAllStores(@Query() queryData: FilterStoreDto) {
     return this.storeService.findAll(queryData);
+  }
+
+  @Get('/stores/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  findStoreById(@Param('id') id: string) {
+    return this.storeService.findByID(id);
   }
 
   @Post('/stores')
@@ -158,7 +218,7 @@ export class AdminController {
     @Body() uploadFileDto: UploadFileDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.filesService.uploadFile(file, uploadFileDto.object);
+    return this.filesService.uploadFile(file, uploadFileDto);
   }
 
   @Post('/import-order')

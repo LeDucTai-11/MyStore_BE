@@ -6,6 +6,10 @@ export class CreateCategoryDTO {
     @IsNotEmpty()
     name: string;
 
+    @ApiProperty()
+    @IsOptional()
+    image?: string;
+
     @ApiProperty({default: 'Bao gồm những sản phẩm chuyên về đồ uống'})
     @IsOptional()
     description?: string;

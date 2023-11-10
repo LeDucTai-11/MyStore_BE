@@ -37,6 +37,7 @@ export class CategoryService {
       select: {
         id: true,
         name: true,
+        image: true,
         description: true,
         createdAt: true,
         _count: {
@@ -64,11 +65,13 @@ export class CategoryService {
       select: {
         id: true,
         name: true,
+        image: true,
         description: true,
         products: {
           select: {
             id: true,
             name: true,
+            image: true,
             description: true,
             amount: true,
             price: true,
@@ -106,6 +109,7 @@ export class CategoryService {
       select: {
         id: true,
         name: true,
+        image: true,
         description: true,
         products: {
           select: {
@@ -141,6 +145,7 @@ export class CategoryService {
       select: {
         id: true,
         name: true,
+        image: true,
         description: true,
         products: {
           select: {

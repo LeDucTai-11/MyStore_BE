@@ -17,6 +17,7 @@ import { StoreModule } from './modules/store/store.module';
 import { ImportOrderModule } from './modules/import-order/import-order.module';
 import { CartModule } from './modules/cart/cart.module';
 import { VoucherModule } from './modules/voucher/voucher.module';
+import { ExportFileModule } from './modules/export-file/export-file.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { VoucherModule } from './modules/voucher/voucher.module';
     ImportOrderModule,
     CartModule,
     VoucherModule,
+    ExportFileModule,
   ],
   controllers: [AppController],
   providers: [AppService],
