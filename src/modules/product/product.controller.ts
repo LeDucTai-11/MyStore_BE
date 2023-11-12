@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ProductService } from './product.service';
 import { FilterProductDto } from './dto';
 
@@ -14,7 +14,13 @@ export class ProductController {
     }
 
     @Get('/:id')
-    findByID(@Param('id') id: string) {
-        return this.productService.findByID(id);
+    @ApiQuery({
+        name: 'storeId',
+        required: false,
+        type: String,
+        example: '',
+      })
+    findByID(@Param('id') id: string,@Query() queryData: any) {
+        return this.productService.findByID(id,queryData);
     }
 }

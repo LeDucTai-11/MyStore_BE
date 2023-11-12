@@ -138,7 +138,7 @@ export class ProductService {
   }
 
   async findByID(id: string,queryData = undefined) {
-    if (queryData.storeId) {
+    if (queryData && queryData.storeId) {
       await this.storeService.findByID(queryData.storeId);
     }
 
@@ -170,7 +170,7 @@ export class ProductService {
       throw new NotFoundException(`Product not found with ID : ${id}`);
     }
     let foundProductStore = null;
-    if(queryData.storeId) {
+    if(queryData && queryData.storeId) {
       foundProductStore = product.productStores.find((x) => x.storeId === queryData.storeId && x.deletedAt === null);
     }
     return {
