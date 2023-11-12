@@ -2,10 +2,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateImportOrderDTO } from './dto/create-import-order.dto';
 import { addDays } from 'date-fns';
+import { FilterImportOderDto } from './dto/filter-import-order.dto';
+import { Pagination, getOrderBy } from 'src/core/utils';
+import { StoreService } from '../store/store.service';
 
 @Injectable()
 export class ImportOrderService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storeService: StoreService,
+  ) {}
 
   async createImportOrder(body: CreateImportOrderDTO) {
     const productStoreIds = body.importOrderDetails.map(
@@ -26,15 +32,12 @@ export class ImportOrderService {
     if (productStores.length !== productStoreIds.length) {
       throw new NotFoundException('One or more productStores not found');
     }
-
+    
     await this.prismaService.$transaction(async (tx) => {
       const importPrices = body.importOrderDetails.map((x) => {
-        const productPrice = productStores.find(
-          (p) => p.id === x.productStoreId,
-        ).product.price;
         return {
           ...x,
-          productPrice: (productPrice / 2) * x.amount,
+          productPrice: x.pricePerProduct * x.amount,
         };
       });
       const totalImportPrices = importPrices.reduce((acc, x) => {
@@ -91,7 +94,79 @@ export class ImportOrderService {
     });
     return {
       success: true,
-      message: "Transaction completed successfully.",
+      message: 'Transaction completed successfully.',
+    };
+  }
+
+  async findAll(queryData: FilterImportOderDto) {
+    const { take, skip, order, storeId } = queryData;
+    if (storeId) {
+      await this.storeService.findByID(storeId);
     }
+    const query: any = {
+      where: {
+        deletedAt: null,
+      },
+      take,
+      skip,
+      orderBy: order ? getOrderBy(order) : undefined,
+      select: {
+        id: true,
+        total: true,
+        importOderDetails: {
+          select: {
+            id: true,
+            productStore: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
+      },
+    };
+    let [total, importOrders] = await Promise.all([
+      this.prismaService.importOrder.count({
+        where: query.where,
+      }),
+      this.prismaService.importOrder.findMany(query),
+    ]);
+    const promisesImportOrders = importOrders.map(async (ip) => {
+      const storeID = ip["importOderDetails"][0].productStore.storeId;
+      if(storeId && storeId !== storeID) return null;
+      const foundStore = await this.storeService.findByID(storeID); 
+      return {
+        ...ip,
+        importOderDetails: undefined,
+        storeName: foundStore.address
+      };
+    });
+    importOrders = (await Promise.all(promisesImportOrders)).filter((x) => x !== null);
+    return Pagination.of(take, skip, total, importOrders);
+  }
+
+  async findByID(importOrderID: string) {
+    const foundImportOrder = await this.prismaService.importOrder.findFirst({
+      where: {
+        id: importOrderID,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        total: true,
+        importOderDetails: {
+          select: {
+            id: true,
+            productStoreId: true,
+            amount: true,
+            importPrice: true,
+            createdAt: true,
+          }
+        },
+        createdAt: true
+      }
+    });
+    if(!foundImportOrder) {
+      throw new NotFoundException('The Import Order not found');
+    }
+    return foundImportOrder;
   }
 }

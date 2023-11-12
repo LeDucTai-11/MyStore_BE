@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Param,
   Patch,
   Post,
   Query,
@@ -29,14 +30,20 @@ export class CartController {
 
   @Patch()
   @UseGuards(JwtAuthGuard)
-  async removeProduct(@Request() req: any, @Body() body: AddProductCartDTO) {
-    return await this.cartService.removeProduct(req, body);
+  async decreaseProduct(@Request() req: any, @Body() body: AddProductCartDTO) {
+    return await this.cartService.decreaseProduct(req, body);
   }
 
   @Delete()
   @UseGuards(JwtAuthGuard)
   async clearCart(@Request() req: any) {
     return await this.cartService.clearCart(req);
+  }
+
+  @Delete('/product/:id')
+  @UseGuards(JwtAuthGuard)
+  async removeProduct(@Request() req: any,@Param('id') productId: string) {
+    return await this.cartService.removeProduct(req,productId);
   }
 
   @Get()

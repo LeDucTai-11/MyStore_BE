@@ -20,4 +20,10 @@ export class ImportProductStoreDTO {
     @IsInt()
     @Min(1)
     amount: number;
+
+    @IsNotEmpty()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1000)
+    pricePerProduct: number;
 }

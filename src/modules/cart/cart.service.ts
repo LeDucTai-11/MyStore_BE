@@ -45,7 +45,7 @@ export class CartService {
     }
   }
 
-  async removeProduct(req: any, body: AddProductCartDTO) {
+  async decreaseProduct(req: any, body: AddProductCartDTO) {
     const { productId, quantity } = body;
     const product = await this.productService.findByID(productId);
 
@@ -70,6 +70,21 @@ export class CartService {
         },
       });
     }
+  }
+
+  async removeProduct(req: any,productId: string) {
+    const foundCart = await this.findCart(req);
+    const foundCartProduct = foundCart.cartProducts.find(
+      (cp) => cp.productId === productId && cp.deletedAt === null,
+    );
+    if(!foundCartProduct) {
+      throw new NotFoundException(`Product not found in Cart`);
+    } 
+    return this.prismaService.cartProduct.delete({
+      where: {
+        id: foundCartProduct.id,
+      }
+    })
   }
 
   async clearCart(req: any) {

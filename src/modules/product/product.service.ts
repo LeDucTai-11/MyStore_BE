@@ -137,8 +137,12 @@ export class ProductService {
     return Pagination.of(take, skip, total, products);
   }
 
-  async findByID(id: string) {
-    const product = await this.prismaService.product.findFirst({
+  async findByID(id: string,queryData = undefined) {
+    if (queryData.storeId) {
+      await this.storeService.findByID(queryData.storeId);
+    }
+
+    let product = await this.prismaService.product.findFirst({
       where: {
         id,
         deletedAt: null,
@@ -148,6 +152,7 @@ export class ProductService {
         name: true,
         image: true,
         description: true,
+        productStores: true,
         amount: true,
         price: true,
         category: {
@@ -164,7 +169,16 @@ export class ProductService {
     if (!product) {
       throw new NotFoundException(`Product not found with ID : ${id}`);
     }
-    return product;
+    let foundProductStore = null;
+    if(queryData.storeId) {
+      foundProductStore = product.productStores.find((x) => x.storeId === queryData.storeId && x.deletedAt === null);
+    }
+    return {
+      ...product,
+      productStores: undefined,
+      amount: (foundProductStore) ? foundProductStore.amount : product.amount,
+      productStore: foundProductStore ?? undefined,
+    };
   }
 
   async updateProduct(id: string, updateProductDTO: UpdateProductDTO) {
@@ -265,6 +279,10 @@ export class ProductService {
       {
         label: 'QuantityImport',
         value: '',
+      },
+      {
+        label: 'PricePerProduct',
+        value: '',
       }
     ];
     return this.exportFileService.exportToCSV(data, fields);
@@ -284,6 +302,11 @@ export class ProductService {
       },
       {
         header: 'QuantityImport',
+        key: '',
+        width: 30,
+      },
+      {
+        header: 'PricePerProduct',
         key: '',
         width: 30,
       }

@@ -18,6 +18,7 @@ import {
   ApiBearerAuth,
   ApiConsumes,
   ApiOkResponse,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import RoleGuard from 'src/core/guards/roles/roles.guard';
@@ -50,6 +51,7 @@ import { FilterStoreDto } from '../store/dto/filter-store.dto';
 import { ExportProductStoreDTO } from '../product/dto/export-product-store.dto';
 import { ExportType } from 'src/core/enum/exportType.enum';
 import { ResponseProductStoreDTO } from '../product/dto/response-product-store.dto';
+import { FilterImportOderDto } from '../import-order/dto/filter-import-order.dto';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -115,8 +117,14 @@ export class AdminController {
 
   @Get('/products/:id')
   @UseGuards(RoleGuard(Role.Admin))
-  findProductById(@Param('id') id: string) {
-    return this.productService.findByID(id);
+  @ApiQuery({
+    name: 'storeId',
+    required: false,
+    type: String,
+    example: '',
+  })
+  findProductById(@Param('id') id: string,@Query() queryData: any) {
+    return this.productService.findByID(id,queryData);
   }
 
   @Post('/products')
@@ -225,6 +233,18 @@ export class AdminController {
   @UseGuards(RoleGuard(Role.Admin))
   async createImportOrder(@Body() body: CreateImportOrderDTO) {
     return this.importOrderService.createImportOrder(body);
+  }
+
+  @Get('/import-order')
+  @UseGuards(RoleGuard(Role.Admin))
+  async findAllImportOrders(@Query() queryData: FilterImportOderDto) {
+    return this.importOrderService.findAll(queryData);
+  }
+
+  @Get('/import-order/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  async findImportOrdersByID(@Param('id') id: string) {
+    return this.importOrderService.findByID(id);
   }
 
   @Post('/voucher')
