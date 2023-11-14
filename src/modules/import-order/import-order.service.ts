@@ -123,10 +123,7 @@ export class ImportOrderService {
         updatedAt: true,
       },
     };
-    let [total, importOrders] = await Promise.all([
-      this.prismaService.importOrder.count({
-        where: query.where,
-      }),
+    let [importOrders] = await Promise.all([
       this.prismaService.importOrder.findMany(query),
     ]);
     const promisesImportOrders = importOrders.map(async (ip) => {
@@ -140,7 +137,7 @@ export class ImportOrderService {
       };
     });
     importOrders = (await Promise.all(promisesImportOrders)).filter((x) => x !== null);
-    return Pagination.of(take, skip, total, importOrders);
+    return Pagination.of(take, skip, importOrders.length, importOrders);
   }
 
   async findByID(importOrderID: string) {
@@ -167,6 +164,22 @@ export class ImportOrderService {
     if(!foundImportOrder) {
       throw new NotFoundException('The Import Order not found');
     }
+
+    const importOderDetails = foundImportOrder.importOderDetails.map(async (x) => {
+      const productStore = await this.prismaService.productStore.findFirst({
+        where: {
+          id: x.productStoreId,
+        },
+        select: {
+          product: true,
+        }
+      })
+      return {
+        ...x,
+        productName: productStore.product.name,
+      }
+    });
+    foundImportOrder.importOderDetails = await Promise.all(importOderDetails);
     return foundImportOrder;
   }
 }
