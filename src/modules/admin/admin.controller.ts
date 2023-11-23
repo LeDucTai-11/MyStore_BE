@@ -52,6 +52,8 @@ import { ExportProductStoreDTO } from '../product/dto/export-product-store.dto';
 import { ExportType } from 'src/core/enum/exportType.enum';
 import { ResponseProductStoreDTO } from '../product/dto/response-product-store.dto';
 import { FilterImportOderDto } from '../import-order/dto/filter-import-order.dto';
+import { FilterVoucherDto } from '../voucher/dto/filter-voucher.dto';
+import { UpdateVoucherDTO } from '../voucher/dto/update-voucher.dto';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -251,5 +253,29 @@ export class AdminController {
   @UseGuards(RoleGuard(Role.Admin))
   async createVoucher(@Body() body: CreateVoucherDTO) {
     return this.voucherService.createVoucher(body);
+  }
+
+  @Get('/voucher')
+  @UseGuards(RoleGuard(Role.Admin))
+  async findAllVouchers(@Query() queryDate: FilterVoucherDto) {
+    return this.voucherService.findAll(queryDate);
+  }
+
+  @Get('/voucher/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  async findVoucherByID(@Param('id') id: string) {
+    return this.voucherService.findByID(id);
+  }
+
+  @Delete('/voucher/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  deleteVoucher(@Param('id') id: string) {
+    return this.voucherService.deleteVoucher(id);
+  }
+
+  @Patch('/voucher/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  updateVoucher(@Param('id') id: string, @Body() body: UpdateVoucherDTO) {
+    return this.voucherService.updateVoucher(id,body);
   }
 }

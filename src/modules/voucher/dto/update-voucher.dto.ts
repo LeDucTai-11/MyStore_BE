@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
 import { VoucherType } from 'src/core/enum/voucher.enum';
 
-export class CreateVoucherDTO {
+export class UpdateVoucherDTO {
   @ApiProperty({ required: true, default: 'SALE01' })
-  @IsNotEmpty()
+  @IsOptional()
   code: string;
 
   @ApiProperty({ required: true, default: 'Đây là voucher của MALT STORE' })
@@ -12,26 +12,27 @@ export class CreateVoucherDTO {
   description?: string;
 
   @ApiProperty({ required: true, default: 200 })
-  @IsNotEmpty()
+  @IsOptional()
   minValueOrder: number;
 
   @ApiProperty({ required: true, default: VoucherType.FIXED })
+  @IsOptional()
   @IsEnum(VoucherType)
   type: VoucherType;
 
   @ApiProperty({ required: true, default: 20 })
-  @IsNotEmpty()
+  @IsOptional()
   discountValue: number;
 
   @ApiProperty({ required: true, default: 10 })
-  @IsNotEmpty()
+  @IsOptional()
   quantity: number;
 
   @ApiProperty({ required: true, default: '2023-11-01' })
-  @IsNotEmpty()
+  @IsOptional()
   startDate: Date;
 
   @ApiProperty({ required: true, default: '2023-12-30' })
-  @IsNotEmpty()
+  @IsOptional()
   endDate: Date;
 }

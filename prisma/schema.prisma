@@ -179,9 +179,13 @@ model ImportOrderDetail {
 
 model Voucher {
   id            String    @id @default(uuid())
+  code          String    @unique
+  description   String?
   minValueOrder Int?      @map("min_value_order")
   type          String
   discountValue Int       @map("discount_value")
+  quantity      Int
+  metadata      Json?     @map("metadata") @db.Json
   startDate     DateTime? @map("start_date") @db.Date()
   endDate       DateTime? @map("end_date") @db.Date()
   orders        Order[]
