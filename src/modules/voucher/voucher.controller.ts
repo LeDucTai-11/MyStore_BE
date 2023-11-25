@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { VoucherService } from './voucher.service';
 import { ApiTags } from '@nestjs/swagger';
 import { FilterVoucherDto } from './dto/filter-voucher.dto';
@@ -10,5 +10,10 @@ export class VoucherController {
   @Get()
   async findAll(@Query() queryData: FilterVoucherDto) {
     return this.voucherService.findAll(queryData);
+  }
+
+  @Get('/:id')
+  async findByID(@Param('id') id: string) {
+    return this.voucherService.findByID(id);
   }
 }

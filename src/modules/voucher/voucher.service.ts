@@ -53,6 +53,9 @@ export class VoucherService {
                 endDate: {
                   gte: new Date(),
                 },
+                quantity: {
+                  gte: 1,
+                }
               }
             : {
               OR: [
@@ -65,6 +68,11 @@ export class VoucherService {
                   endDate: {
                     lt: new Date(),
                   },
+                },
+                {
+                  quantity: {
+                    lt: 1
+                  }
                 }
               ]
             }
