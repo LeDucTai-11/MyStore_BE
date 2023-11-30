@@ -68,7 +68,7 @@ export class OrderService {
           },
         },
       });
-      if (!foundVoucher) {
+      if (!foundVoucher || foundVoucher.metadata["users"].includes(req.user.id)) {
         throw new NotFoundException('Voucher not found or invalid');
       }
     }
