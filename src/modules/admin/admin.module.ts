@@ -10,6 +10,10 @@ import { StoreService } from '../store/store.service';
 import { ImportOrderService } from '../import-order/import-order.service';
 import { VoucherService } from '../voucher/voucher.service';
 import { ExportFileService } from '../export-file/export-file.service';
+import { OrderRequestService } from '../order-request/order-request.service';
+import { MailService } from '../mail/mail.service';
+import { OrderService } from '../order/order.service';
+import { CartService } from '../cart/cart.service';
 
 @Module({
   controllers: [AdminController],
@@ -23,7 +27,11 @@ import { ExportFileService } from '../export-file/export-file.service';
     StoreService,
     ImportOrderService,
     VoucherService,
-    ExportFileService
+    ExportFileService,
+    OrderRequestService,
+    MailService,
+    OrderService,
+    CartService
   ],
 })
 export class AdminModule {}

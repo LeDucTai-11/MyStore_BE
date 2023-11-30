@@ -197,20 +197,25 @@ model Voucher {
 }
 
 model Order {
-  id           String         @id @default(uuid())
-  total        Float          @db.Double
-  shipping     Float?         @default(0) @db.Double
-  address      String?
-  createdBy    String         @map("created_by")
-  user         User           @relation(fields: [createdBy], references: [id])
-  voucherId    String?        @map("voucher_id")
-  voucher      Voucher?       @relation(fields: [voucherId], references: [id])
-  orderRequest OrderRequest[]
-  orderDetails OrderDetail[]
-  bills        Bill[]
-  createdAt    DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
-  updatedAt    DateTime?      @map("updated_at") @db.Timestamp()
-  deletedAt    DateTime?      @map("deleted_at") @db.Timestamp()
+  id              String         @id @default(uuid())
+  total           Float          @db.Double
+  shipping        Float?         @default(0) @db.Double
+  address         String?
+  createdBy       String         @map("created_by")
+  cancelExpiredAt DateTime?      @map("cancel_expired_at") @db.Timestamp()
+  orderStatusId   Int?           @map("order_status_id")
+  orderStatus     OrderStatus?   @relation(fields: [orderStatusId], references: [id])
+  paymentMethod   String?        @map("payment_method")
+  user            User           @relation(fields: [createdBy], references: [id])
+  voucherId       String?        @map("voucher_id")
+  voucher         Voucher?       @relation(fields: [voucherId], references: [id])
+  metadata        Json?          @map("metadata") @db.Json
+  orderRequest    OrderRequest[]
+  orderDetails    OrderDetail[]
+  bills           Bill[]
+  createdAt       DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt       DateTime?      @map("updated_at") @db.Timestamp()
+  deletedAt       DateTime?      @map("deleted_at") @db.Timestamp()
 
   @@map("order")
 }
@@ -249,6 +254,14 @@ model OrderRequest {
   deletedAt       DateTime?     @map("deleted_at") @db.Timestamp()
 
   @@map("order_request")
+}
+
+model OrderStatus {
+  id     Int     @id @default(autoincrement())
+  name   String
+  orders Order[]
+
+  @@map("order_status")
 }
 
 model Bill {

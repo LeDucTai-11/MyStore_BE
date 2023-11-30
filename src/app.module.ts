@@ -18,6 +18,8 @@ import { ImportOrderModule } from './modules/import-order/import-order.module';
 import { CartModule } from './modules/cart/cart.module';
 import { VoucherModule } from './modules/voucher/voucher.module';
 import { ExportFileModule } from './modules/export-file/export-file.module';
+import { OrderModule } from './modules/order/order.module';
+import { OrderRequestModule } from './modules/order-request/order-request.module';
 
 @Module({
   imports: [
@@ -39,6 +41,8 @@ import { ExportFileModule } from './modules/export-file/export-file.module';
     CartModule,
     VoucherModule,
     ExportFileModule,
+    OrderModule,
+    OrderRequestModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Request,
   Res,
   UploadedFile,
   UseGuards,
@@ -54,6 +55,11 @@ import { ResponseProductStoreDTO } from '../product/dto/response-product-store.d
 import { FilterImportOderDto } from '../import-order/dto/filter-import-order.dto';
 import { FilterVoucherDto } from '../voucher/dto/filter-voucher.dto';
 import { UpdateVoucherDTO } from '../voucher/dto/update-voucher.dto';
+import { UpdateOrderRequestStatusDto } from '../order-request/dto/update-order-request.dto';
+import { OrderRequestService } from '../order-request/order-request.service';
+import { FilterOrderRequestDto } from '../order-request/dto/filter-order-request.dto';
+import { OrderService } from '../order/order.service';
+import { FilterOrderDto } from '../order/dto/filter-order.dto';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -67,6 +73,8 @@ export class AdminController {
     private readonly storeService: StoreService,
     private readonly importOrderService: ImportOrderService,
     private readonly voucherService: VoucherService,
+    private readonly orderRequestService: OrderRequestService,
+    private readonly orderService: OrderService,
   ) {}
 
   @Get('/users')
@@ -277,5 +285,43 @@ export class AdminController {
   @UseGuards(RoleGuard(Role.Admin))
   updateVoucher(@Param('id') id: string, @Body() body: UpdateVoucherDTO) {
     return this.voucherService.updateVoucher(id,body);
+  }
+
+  @Get('/order-request')
+  @UseGuards(RoleGuard(Role.Admin))
+  findAllOrderRequets(@Query() queryData: FilterOrderRequestDto) {
+    return this.orderRequestService.findAll(queryData);
+  }
+
+  @Get('/order-request/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  findOrderRequetById(@Param('id') id: string) {
+    return this.orderRequestService.findById(id);
+  }
+
+  @Patch('/order/modify-request-status/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  updateBookingModifyRequestStatus(
+    @Param('id') id: string,
+    @Body() updateBookingRequestStatusDto: UpdateOrderRequestStatusDto,
+    @Request() req: any,
+  ) {
+    return this.orderRequestService.updateModifyRequestStatusByAdmin(
+      updateBookingRequestStatusDto,
+      req,
+      id,
+    );
+  }
+
+  @Get('/order')
+  @UseGuards(RoleGuard(Role.Admin))
+  findAllOrdes(@Query() queryData: FilterOrderDto) {
+    return this.orderService.findAll(queryData);
+  }
+
+  @Get('/order/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  findOrderById(@Param('id') id: string) {
+    return this.orderService.findById(id);
   }
 }

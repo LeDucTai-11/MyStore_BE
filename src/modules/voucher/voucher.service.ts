@@ -25,6 +25,9 @@ export class VoucherService {
         ...body,
         startDate: new Date(body.startDate),
         endDate: new Date(body.endDate),
+        metadata: {
+          users: []
+        },
       },
     });
   }

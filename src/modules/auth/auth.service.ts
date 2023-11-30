@@ -31,14 +31,14 @@ export class AuthService {
     async signin(authDTO: AuthDTO) {
         const foundUser = await this.userService.findByUserName(authDTO.username);
         if(!foundUser) {
-            throw new ForbiddenException(`User not found with USERNAME: ${authDTO.username}`);
+            throw new ForbiddenException(`Incorrect username or password.`);
         }
         const passwordMatched = await argon.verify(
             foundUser.password,
             authDTO.password
         );
         if(!passwordMatched) {
-            throw new ForbiddenException(`Incorrect password !`);
+            throw new ForbiddenException(`Incorrect username or password.`);
         }
         return this.signJwtToken(foundUser.id,foundUser.username);
     }

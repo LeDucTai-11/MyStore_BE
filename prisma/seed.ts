@@ -19,6 +19,17 @@ async function main() {
         ],
         skipDuplicates: true,
     });
+
+    await prisma.orderStatus.createMany({
+        data: [
+            {name:'PENDING_CONFIRM'},
+            {name: "CONFIRMED"},
+            {name: 'COMPLETED'},
+            {name: 'PENDING_PAYMENT'},
+            {name: 'PAYMENT_CONFIRMED'},
+            {name: 'CANCELED'}
+        ]
+    })
 }
 
 main()
