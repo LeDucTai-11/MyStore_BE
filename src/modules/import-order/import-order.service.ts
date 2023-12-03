@@ -107,8 +107,6 @@ export class ImportOrderService {
       where: {
         deletedAt: null,
       },
-      take,
-      skip,
       orderBy: order ? getOrderBy(order) : undefined,
       select: {
         id: true,
@@ -123,10 +121,7 @@ export class ImportOrderService {
         updatedAt: true,
       },
     };
-    let [total,importOrders] = await Promise.all([
-      this.prismaService.importOrder.count({
-        where: query.where,
-      }),
+    let [importOrders] = await Promise.all([
       this.prismaService.importOrder.findMany(query),
     ]);
     const promisesImportOrders = importOrders.map(async (ip) => {
@@ -140,7 +135,7 @@ export class ImportOrderService {
       };
     });
     importOrders = (await Promise.all(promisesImportOrders)).filter((x) => x !== null);
-    return Pagination.of(take, skip, total, importOrders);
+    return Pagination.of(take, skip, importOrders.length, importOrders.splice(skip, skip + take));
   }
 
   async findByID(importOrderID: string) {

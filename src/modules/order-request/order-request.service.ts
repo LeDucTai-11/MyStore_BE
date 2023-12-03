@@ -18,6 +18,8 @@ import { MailService } from '../mail/mail.service';
 import { UsersService } from '../users/users.service';
 import { FilterOrderRequestDto } from './dto/filter-order-request.dto';
 import { Pagination, forceDataToArray, getOrderBy } from 'src/core/utils';
+import { isEmpty } from 'lodash';
+import { VoucherType } from 'src/core/enum/voucher.enum';
 
 @Injectable()
 export class OrderRequestService {
@@ -27,23 +29,9 @@ export class OrderRequestService {
     private readonly userService: UsersService,
   ) {}
 
-  async findAllByReq(req: any) {
-    return this.prismaService.orderRequest.findMany({
-      where: {
-        createdBy: req.user.id,
-      },
-      select: {
-        id: true,
-        typeOfRequest: true,
-        requestStatusId: true,
-        order: true,
-        createdAt: true,
-      },
-    });
-  }
-
-  async findAll(queryData: FilterOrderRequestDto) {
-    const { search, take, skip, requestStatusId, paymentMethod, order } = queryData;
+  async findAll(queryData: FilterOrderRequestDto, req = null) {
+    const { search, take, skip, requestStatusId, paymentMethod, order } =
+      queryData;
     const query: any = {
       where: {
         requestStatusId: requestStatusId ?? undefined,
@@ -63,14 +51,14 @@ export class OrderRequestService {
             id: true,
             firstName: true,
             lastName: true,
-          }
+          },
         },
         requestStatusId: true,
         order: true,
         createdAt: true,
-      }
-    }
-    if(search) {
+      },
+    };
+    if (search) {
       query.where.user = {
         OR: [
           {
@@ -84,16 +72,86 @@ export class OrderRequestService {
             },
           },
         ],
-      }
+      };
     }
-    
-    const [total, orderRequests] = await Promise.all([
+
+    let [total, orderRequests] = await Promise.all([
       this.prismaService.orderRequest.count({
         where: query.where,
       }),
       this.prismaService.orderRequest.findMany(query),
     ]);
-    return Pagination.of(take, skip, total, orderRequests);
+
+    const orderRequestPromises = orderRequests.map(async (item) => {
+      const orderDetails = (
+        await this.prismaService.orderDetail.findMany({
+          where: {
+            orderId: item['order'].id,
+          },
+          select: {
+            id: true,
+            quantity: true,
+            orderPrice: true,
+            orderId: true,
+            productStoreId: true,
+            productStore: {
+              select: {
+                id: true,
+                product: true,
+              },
+            },
+          },
+        })
+      ).map((item) => {
+        return {
+          ...item,
+          productStore: undefined,
+          product: item.productStore.product,
+        };
+      });
+      let discountValue = 0;
+      let foundVoucher = null;
+      if (item['order'].voucherId) {
+        foundVoucher = await this.prismaService.voucher.findFirst({
+          where: {
+            id: item['order'].voucherId,
+          },
+          select: {
+            id: true,
+            code: true,
+            description: true,
+            minValueOrder: true,
+            discountValue: true,
+            type: true,
+          },
+        });
+      }
+
+      if (foundVoucher) {
+        discountValue =
+          foundVoucher.type === VoucherType.FIXED
+            ? foundVoucher.discountValue
+            : (item['order'].total * foundVoucher.discountValue) / 100;
+      }
+
+      return {
+        ...item,
+        order: {
+          ...item['order'],
+          subTotal: item['order'].total,
+          discountValue,
+          total: item['order'].total + item['order'].shipping - discountValue,
+          voucher: foundVoucher,
+          orderDetails,
+        },
+      };
+    });
+    return Pagination.of(
+      take,
+      skip,
+      total,
+      await Promise.all(orderRequestPromises),
+    );
   }
 
   async findById(id: string) {
@@ -110,17 +168,80 @@ export class OrderRequestService {
             id: true,
             firstName: true,
             lastName: true,
-          }
+          },
         },
         requestStatusId: true,
         order: true,
         createdAt: true,
-      }
-    })
-    if(!foundOrderRequest) {
+      },
+    });
+    if (!foundOrderRequest) {
       throw new NotFoundException('Order Request not found');
     }
-    return foundOrderRequest;
+    const orderDetails = (
+      await this.prismaService.orderDetail.findMany({
+        where: {
+          orderId: foundOrderRequest.order.id,
+        },
+        select: {
+          id: true,
+          quantity: true,
+          orderPrice: true,
+          orderId: true,
+          productStoreId: true,
+          productStore: {
+            select: {
+              id: true,
+              product: true,
+            },
+          },
+        },
+      })
+    ).map((item) => {
+      return {
+        ...item,
+        productStore: undefined,
+        product: item.productStore.product,
+      };
+    });
+    let discountValue = 0;
+    let foundVoucher = null;
+    if (foundOrderRequest.order.voucherId) {
+      foundVoucher = await this.prismaService.voucher.findFirst({
+        where: {
+          id: foundOrderRequest.order.voucherId,
+        },
+        select: {
+          id: true,
+          code: true,
+          description: true,
+          minValueOrder: true,
+          discountValue: true,
+          type: true,
+        },
+      });
+    }
+
+    if (foundVoucher) {
+      discountValue =
+        foundVoucher.type === VoucherType.FIXED
+          ? foundVoucher.discountValue
+          : (foundOrderRequest.order.total * foundVoucher.discountValue) / 100;
+    }
+    return {
+      ...foundOrderRequest,
+      order: {
+        ...foundOrderRequest.order,
+        voucher: foundVoucher,
+        subTotal: foundOrderRequest.order.total,
+        discountValue,
+        total:
+          foundOrderRequest.order.total +
+          foundOrderRequest.order.shipping -
+          discountValue,
+        orderDetails,
+      },
+    };
   }
 
   async updateModifyRequestStatusByAdmin(
@@ -131,6 +252,8 @@ export class OrderRequestService {
     const orderRequest = await this.prismaService.orderRequest.findUnique({
       where: {
         id,
+        requestStatusId: RequestStatus.Pending,
+        deletedAt: null,
       },
     });
     if (!orderRequest) {
@@ -220,6 +343,35 @@ export class OrderRequestService {
           updatedAt: new Date(),
         },
       });
+
+      // Step: Update amount of Product,ProductStores
+      await Promise.all(
+        order.orderDetails.map(async (od) => {
+          const foundProduct = await this.prismaService.product.findFirst({
+            where: {
+              id: od.productStore.productId,
+            },
+          });
+          await this.prismaService.productStore.update({
+            where: {
+              id: od.productStore.id,
+            },
+            data: {
+              amount: od.productStore.amount + od.quantity,
+              updatedAt: new Date(),
+            },
+          });
+          await this.prismaService.product.update({
+            where: {
+              id: foundProduct.id,
+            },
+            data: {
+              amount: foundProduct.amount + od.quantity,
+              updatedAt: new Date(),
+            },
+          });
+        }),
+      );
       return {
         status: true,
         data: updatedOrder,
@@ -354,20 +506,52 @@ export class OrderRequestService {
     req: any,
   ) {
     if (createModifyBookingRequestDto.requestType === OrderRequesType.CANCEL) {
+      // Check list order Request with Status Pending and type Create
+      const foundOrderRequest = await this.prismaService.orderRequest.findFirst(
+        {
+          where: {
+            orderId: createModifyBookingRequestDto.orderId,
+            requestStatusId: RequestStatus.Pending,
+            typeOfRequest: OrderRequesType.CREATE,
+            createdBy: req.user.id,
+            deletedAt: null,
+          },
+        },
+      );
+
+      if (foundOrderRequest) {
+        return await this.prismaService.orderRequest.update({
+          where: {
+            id: foundOrderRequest.id,
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        });
+      }
+
+      // Check request Cancel already exist in db
+      const foundRequestCancel =
+        await this.prismaService.orderRequest.findFirst({
+          where: {
+            orderId: createModifyBookingRequestDto.orderId,
+            requestStatusId: RequestStatus.Pending,
+            typeOfRequest: OrderRequesType.CANCEL,
+            createdBy: req.user.id,
+            deletedAt: null,
+          },
+        });
+      if (foundRequestCancel) {
+        throw new BadRequestException('You created Cancel Request in the past');
+      }
+
       const foundOrder = await this.prismaService.order.findFirst({
         where: {
           id: createModifyBookingRequestDto.orderId,
-          OR: [
-            {
-              orderStatusId: OrderStatus.PENDING_CONFIRM,
-            },
-            {
-              orderStatusId: OrderStatus.CONFIRMED,
-              cancelExpiredAt: {
-                gte: new Date(),
-              },
-            },
-          ],
+          orderStatusId: OrderStatus.CONFIRMED,
+          cancelExpiredAt: {
+            gte: new Date(),
+          },
         },
       });
       if (!foundOrder) {

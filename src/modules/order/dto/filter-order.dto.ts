@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { Type } from "class-transformer";
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
 import { IsOrderQueryParam } from "src/core/decorators/order.decorators";
-import { GetAllOrderRequestOrderByEnum, PaymentMethod } from "src/core/enum/orderRequest.enum";
+import { GetAllOrderRequestOrderByEnum, OrderStatus, PaymentMethod } from "src/core/enum/orderRequest.enum";
 
 export class FilterOrderDto {
     @ApiPropertyOptional({
@@ -42,6 +42,13 @@ export class FilterOrderDto {
     @IsString()
     @IsOrderQueryParam('order', GetAllOrderRequestOrderByEnum)
     order?: string;
+
+    @ApiPropertyOptional({
+        description: 'Filter by Order Status',
+        example: 1,
+    })
+    @IsOptional()
+    orderStatusId?: number;
 
     @ApiPropertyOptional({
         description: 'Filter by Payment Methods',

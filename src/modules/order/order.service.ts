@@ -11,6 +11,7 @@ import { RequestStatus } from 'src/core/enum/requestStatus.enum';
 import { CartService } from '../cart/cart.service';
 import { FilterOrderDto } from './dto/filter-order.dto';
 import { Pagination, getOrderBy } from 'src/core/utils';
+import { VoucherType } from 'src/core/enum/voucher.enum';
 
 @Injectable()
 export class OrderService {
@@ -68,7 +69,10 @@ export class OrderService {
           },
         },
       });
-      if (!foundVoucher || foundVoucher.metadata["users"].includes(req.user.id)) {
+      if (
+        !foundVoucher ||
+        foundVoucher.metadata['users'].includes(req.user.id)
+      ) {
         throw new NotFoundException('Voucher not found or invalid');
       }
     }
@@ -122,18 +126,14 @@ export class OrderService {
     return newOrder;
   }
 
-  async findAll(queryData: FilterOrderDto) {
-    const { search, take, skip, paymentMethod, order } = queryData;
+  async findAll(queryData: FilterOrderDto, req = null) {
+    const { search, take, skip, paymentMethod, order, orderStatusId } = queryData;
+    
     const query: any = {
       where: {
         paymentMethod: paymentMethod ?? undefined,
-        orderStatusId: {
-          in: [
-            OrderStatus.COMPLETED,
-            OrderStatus.CONFIRMED,
-            OrderStatus.PAYMENT_CONFIRMED,
-          ],
-        },
+        orderStatusId: orderStatusId ? Number(orderStatusId) : undefined,
+        createdBy: req ? req.user.id : undefined,
         deletedAt: null,
       },
       take,
@@ -184,13 +184,45 @@ export class OrderService {
       };
     }
 
-    const [total, orders] = await Promise.all([
+    let [total, orders] = await Promise.all([
       this.prismaService.order.count({
         where: query.where,
       }),
       this.prismaService.order.findMany(query),
     ]);
-    return Pagination.of(take, skip, total, orders);
+
+    const orderPromises = orders.map(async (item) => {
+      let discountValue = 0;
+      if (item['voucher']) {
+        discountValue =
+          item['voucher'].type === VoucherType.FIXED
+            ? item['voucher'].discountValue
+            : item.total * item['voucher'].discountValue / 100;
+      }
+      const orderDetails = item['orderDetails'].map(async (od) => {
+        const foundProductStore =
+          await this.prismaService.productStore.findFirst({
+            where: {
+              id: od.productStoreId,
+            },
+            select: {
+              product: true,
+            },
+          });
+        return {
+          ...od,
+          product: foundProductStore.product,
+        };
+      });
+      return {
+        ...item,
+        subTotal: item.total,
+        discountValue,
+        total: item.total + item.shipping - discountValue,
+        orderDetails: await Promise.all(orderDetails),
+      };
+    });
+    return Pagination.of(take, skip, total, await Promise.all(orderPromises));
   }
 
   async findById(id: string) {
@@ -229,6 +261,35 @@ export class OrderService {
     if (!foundOrder) {
       throw new NotFoundException('Order not found');
     }
-    return foundOrder;
+    let discountValue = 0;
+    if (foundOrder['voucher']) {
+      discountValue =
+        foundOrder['voucher'].type === VoucherType.FIXED
+          ? foundOrder['voucher'].discountValue
+          : foundOrder.total * foundOrder['voucher'].discountValue / 100;
+    }
+    const orderDetails = foundOrder.orderDetails.map(async (od) => {
+      const foundProductStore = await this.prismaService.productStore.findFirst(
+        {
+          where: {
+            id: od.productStoreId,
+          },
+          select: {
+            product: true,
+          },
+        },
+      );
+      return {
+        ...od,
+        product: foundProductStore.product,
+      };
+    });
+    return {
+      ...foundOrder,
+      subTotal: foundOrder.total,
+      discountValue,
+      total: foundOrder.total + foundOrder.shipping - discountValue,
+      orderDetails: await Promise.all(orderDetails),
+    };
   }
 }
