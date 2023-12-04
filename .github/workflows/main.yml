@@ -30,6 +30,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_KEY }}
           script: |
+            cd ${{ secrets.SERVER_WORKING_DIRECTORY }}
             sudo docker image prune -a -f
             sudo docker pull ${{ secrets.REGISTRY }}:latest
             sudo docker compose up -d
