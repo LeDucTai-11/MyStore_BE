@@ -542,6 +542,23 @@ export class OrderRequestService {
 
       if (foundOrderRequest) {
         return this.prismaService.$transaction(async (tx) => {
+          const orderDetails = await tx.orderDetail.findMany({
+            where: {
+              orderId: foundOrderRequest.orderId,
+            },
+            select: {
+              id: true,
+              quantity: true,
+              productStore: {
+                select: {
+                  id: true,
+                  amount: true,
+                  productId: true,
+                  product: true,
+                },
+              },
+            },
+          });
           await tx.orderDetail.updateMany({
             where: {
               orderId: foundOrderRequest.orderId,
@@ -559,6 +576,35 @@ export class OrderRequestService {
               deletedAt: new Date(),
             },
           });
+
+          // Step: Update amount of Product,ProductStores
+          await Promise.all(
+            orderDetails.map(async (od) => {
+              const foundProduct = await tx.product.findFirst({
+                where: {
+                  id: od.productStore.productId,
+                },
+              });
+              await tx.productStore.update({
+                where: {
+                  id: od.productStore.id,
+                },
+                data: {
+                  amount: od.productStore.amount + od.quantity,
+                  updatedAt: new Date(),
+                },
+              });
+              await tx.product.update({
+                where: {
+                  id: foundProduct.id,
+                },
+                data: {
+                  amount: foundProduct.amount + od.quantity,
+                  updatedAt: new Date(),
+                },
+              });
+            }),
+          );
           return await this.prismaService.orderRequest.update({
             where: {
               id: foundOrderRequest.id,

@@ -162,7 +162,6 @@ export class OrderService {
         paymentMethod: paymentMethod ?? undefined,
         orderStatusId: orderStatusId ? Number(orderStatusId) : undefined,
         createdBy: req ? req.user.id : undefined,
-        deletedAt: null,
       },
       take,
       skip,
