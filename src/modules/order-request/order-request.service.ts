@@ -334,48 +334,58 @@ export class OrderRequestService {
     requestStatusId: RequestStatus,
   ) {
     if (requestStatusId === RequestStatus.Approved) {
-      const updatedOrder = await this.prismaService.order.update({
-        where: {
-          id: order.id,
-        },
-        data: {
-          orderStatusId: OrderStatus.CANCELED,
-          updatedAt: new Date(),
-        },
-      });
+      return this.prismaService.$transaction(async (tx) => {
+        const updatedOrder = await tx.order.update({
+          where: {
+            id: order.id,
+          },
+          data: {
+            orderStatusId: OrderStatus.CANCELED,
+            deletedAt: new Date(),
+          },
+        });
+        await tx.orderDetail.updateMany({
+          where: {
+            orderId: order.id,
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        });
 
-      // Step: Update amount of Product,ProductStores
-      await Promise.all(
-        order.orderDetails.map(async (od) => {
-          const foundProduct = await this.prismaService.product.findFirst({
-            where: {
-              id: od.productStore.productId,
-            },
-          });
-          await this.prismaService.productStore.update({
-            where: {
-              id: od.productStore.id,
-            },
-            data: {
-              amount: od.productStore.amount + od.quantity,
-              updatedAt: new Date(),
-            },
-          });
-          await this.prismaService.product.update({
-            where: {
-              id: foundProduct.id,
-            },
-            data: {
-              amount: foundProduct.amount + od.quantity,
-              updatedAt: new Date(),
-            },
-          });
-        }),
-      );
-      return {
-        status: true,
-        data: updatedOrder,
-      };
+        // Step: Update amount of Product,ProductStores
+        await Promise.all(
+          order.orderDetails.map(async (od) => {
+            const foundProduct = await tx.product.findFirst({
+              where: {
+                id: od.productStore.productId,
+              },
+            });
+            await tx.productStore.update({
+              where: {
+                id: od.productStore.id,
+              },
+              data: {
+                amount: od.productStore.amount + od.quantity,
+                updatedAt: new Date(),
+              },
+            });
+            await tx.product.update({
+              where: {
+                id: foundProduct.id,
+              },
+              data: {
+                amount: foundProduct.amount + od.quantity,
+                updatedAt: new Date(),
+              },
+            });
+          }),
+        );
+        return {
+          status: true,
+          data: updatedOrder,
+        };
+      });
     } else if (requestStatusId === RequestStatus.Rejected) {
       return {
         status: false,
@@ -404,7 +414,7 @@ export class OrderRequestService {
         }
 
         // Step: Update Order
-        await this.prismaService.order.update({
+        await tx.order.update({
           where: {
             id: order.id,
           },
@@ -420,7 +430,7 @@ export class OrderRequestService {
 
         // Step: Add user to voucher's metadata
         if (order.voucherId) {
-          await this.prismaService.voucher.update({
+          await tx.voucher.update({
             where: {
               id: order.voucherId,
             },
@@ -438,37 +448,8 @@ export class OrderRequestService {
           });
         }
 
-        // Step: Update amount of Product,ProductStores
-        await Promise.all(
-          order.orderDetails.map(async (od) => {
-            const foundProduct = await this.prismaService.product.findFirst({
-              where: {
-                id: od.productStore.productId,
-              },
-            });
-            await this.prismaService.productStore.update({
-              where: {
-                id: od.productStore.id,
-              },
-              data: {
-                amount: od.productStore.amount - od.quantity,
-                updatedAt: new Date(),
-              },
-            });
-            await this.prismaService.product.update({
-              where: {
-                id: foundProduct.id,
-              },
-              data: {
-                amount: foundProduct.amount - od.quantity,
-                updatedAt: new Date(),
-              },
-            });
-          }),
-        );
-
         // Step: Create Bill
-        const newBill = await this.prismaService.bill.create({
+        const newBill = await tx.bill.create({
           data: {
             orderId: order.id,
           },
@@ -483,21 +464,61 @@ export class OrderRequestService {
         };
       });
     } else if (requestStatusId === RequestStatus.Rejected) {
-      await this.prismaService.order.update({
-        where: {
-          id: order.id,
-        },
-        data: {
-          orderStatusId: OrderStatus.CANCELED,
-          updatedAt: new Date(),
-        },
+      return this.prismaService.$transaction(async (tx) => {
+        await tx.order.update({
+          where: {
+            id: order.id,
+          },
+          data: {
+            orderStatusId: OrderStatus.CANCELED,
+            deletedAt: new Date(),
+          },
+        });
+        await tx.orderDetail.updateMany({
+          where: {
+            orderId: order.id,
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        });
+
+        // Step: Update amount of Product,ProductStores
+        await Promise.all(
+          order.orderDetails.map(async (od) => {
+            const foundProduct = await tx.product.findFirst({
+              where: {
+                id: od.productStore.productId,
+              },
+            });
+            await tx.productStore.update({
+              where: {
+                id: od.productStore.id,
+              },
+              data: {
+                amount: od.productStore.amount + od.quantity,
+                updatedAt: new Date(),
+              },
+            });
+            await tx.product.update({
+              where: {
+                id: foundProduct.id,
+              },
+              data: {
+                amount: foundProduct.amount + od.quantity,
+                updatedAt: new Date(),
+              },
+            });
+          }),
+        );
+
+        return {
+          status: false,
+          data: {
+            msg: 'Order request has been rejected',
+          },
+        };
       });
-      return {
-        status: false,
-        data: {
-          msg: 'Order request has been rejected',
-        },
-      };
     }
   }
 
@@ -520,13 +541,33 @@ export class OrderRequestService {
       );
 
       if (foundOrderRequest) {
-        return await this.prismaService.orderRequest.update({
-          where: {
-            id: foundOrderRequest.id,
-          },
-          data: {
-            deletedAt: new Date(),
-          },
+        return this.prismaService.$transaction(async (tx) => {
+          await tx.orderDetail.updateMany({
+            where: {
+              orderId: foundOrderRequest.orderId,
+            },
+            data: {
+              deletedAt: new Date(),
+            },
+          });
+          await tx.order.update({
+            where: {
+              id: foundOrderRequest.orderId,
+            },
+            data: {
+              orderStatusId: OrderStatus.CANCELED,
+              deletedAt: new Date(),
+            },
+          });
+          return await this.prismaService.orderRequest.update({
+            where: {
+              id: foundOrderRequest.id,
+            },
+            data: {
+              requestStatusId: RequestStatus.Rejected,
+              deletedAt: new Date(),
+            },
+          });
         });
       }
 

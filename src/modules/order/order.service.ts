@@ -107,6 +107,34 @@ export class OrderService {
               orderId: newOrder.id,
             },
           });
+          const foundProductStore = await tx.productStore.findFirst({
+            where: {
+              id: op.productStoreId
+            },
+            select: {
+              id: true,
+              amount: true,
+              product: true,
+            }
+          })
+          await tx.productStore.update({
+            where: {
+              id: foundProductStore.id,
+            },
+            data: {
+              amount: foundProductStore.amount - op.quantity,
+              updatedAt: new Date()
+            }
+          });
+          await tx.product.update({
+            where: {
+              id: foundProductStore.product.id,
+            },
+            data: {
+              amount: foundProductStore.product.amount - op.quantity,
+              updatedAt: new Date()
+            }
+          })
         }),
       );
 
