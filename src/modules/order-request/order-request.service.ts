@@ -297,6 +297,7 @@ export class OrderRequestService {
           orderRequest,
           order,
           requestStatusId,
+          req,
         );
       } else if (orderRequest.typeOfRequest === OrderRequesType.CANCEL) {
         respData = await this.modifyOrderReqCancelOrder(
@@ -400,19 +401,10 @@ export class OrderRequestService {
     orderRequest: any,
     order: any,
     requestStatusId: RequestStatus,
+    req: any,
   ) {
     if (requestStatusId === RequestStatus.Approved) {
       return this.prismaService.$transaction(async (tx) => {
-        // Step: Check amount of product Stores in db
-        const isInStock = order.orderDetails.every((x) => {
-          return x.productStore.amount >= x.quantity;
-        });
-        if (!isInStock) {
-          throw new BadRequestException(
-            'One or more productStores out of stock',
-          );
-        }
-
         // Step: Update Order
         await tx.order.update({
           where: {
@@ -428,30 +420,11 @@ export class OrderRequestService {
           },
         });
 
-        // Step: Add user to voucher's metadata
-        if (order.voucherId) {
-          await tx.voucher.update({
-            where: {
-              id: order.voucherId,
-            },
-            data: {
-              quantity: order.voucher.quantity - 1,
-              metadata: {
-                ...order.voucher.metadata,
-                users: [
-                  ...(order.voucher.metadata?.users || []),
-                  order.createdBy,
-                ],
-              },
-              updatedAt: new Date(),
-            },
-          });
-        }
-
         // Step: Create Bill
         const newBill = await tx.bill.create({
           data: {
             orderId: order.id,
+            createdBy: req.user.id,
           },
         });
 
@@ -511,6 +484,25 @@ export class OrderRequestService {
             });
           }),
         );
+
+        // Step: Remove user in voucher's metadata
+        if (order.voucherId) {
+          await tx.voucher.update({
+            where: {
+              id: order.voucherId,
+            },
+            data: {
+              quantity: order.voucher.quantity + 1,
+              metadata: {
+                ...order.voucher.metadata,
+                users: (order.voucher.metadata?.users || []).filter(
+                  (x) => x !== order.createdBy,
+                ),
+              },
+              updatedAt: new Date(),
+            },
+          });
+        }
 
         return {
           status: false,

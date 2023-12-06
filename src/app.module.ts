@@ -20,6 +20,7 @@ import { VoucherModule } from './modules/voucher/voucher.module';
 import { ExportFileModule } from './modules/export-file/export-file.module';
 import { OrderModule } from './modules/order/order.module';
 import { OrderRequestModule } from './modules/order-request/order-request.module';
+import { BillModule } from './modules/bill/bill.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { OrderRequestModule } from './modules/order-request/order-request.module
     ExportFileModule,
     OrderModule,
     OrderRequestModule,
+    BillModule,
   ],
   controllers: [AppController],
   providers: [AppService],

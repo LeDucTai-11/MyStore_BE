@@ -60,8 +60,9 @@ export class OrderService {
       return acc + x.productPrice;
     }, 0);
 
+    let foundVoucher = null;
     if (body.voucherId) {
-      const foundVoucher = await this.prismaService.voucher.findFirst({
+      foundVoucher = await this.prismaService.voucher.findFirst({
         where: {
           id: body.voucherId,
           minValueOrder: {
@@ -137,6 +138,26 @@ export class OrderService {
           })
         }),
       );
+
+      // Step: Add user to voucher's metadata
+      if (foundVoucher.id) {
+        await tx.voucher.update({
+          where: {
+            id: foundVoucher.id,
+          },
+          data: {
+            quantity: foundVoucher.quantity - 1,
+            metadata: {
+              ...foundVoucher.metadata,
+              users: [
+                ...(foundVoucher.metadata?.users || []),
+                newOrder.createdBy,
+              ],
+            },
+            updatedAt: new Date(),
+          },
+        });
+      }
 
       // Create Order Request with Order ID
       await tx.orderRequest.create({

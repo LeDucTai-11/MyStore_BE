@@ -14,6 +14,7 @@ import { OrderRequestService } from '../order-request/order-request.service';
 import { MailService } from '../mail/mail.service';
 import { OrderService } from '../order/order.service';
 import { CartService } from '../cart/cart.service';
+import { BillService } from '../bill/bill.service';
 
 @Module({
   controllers: [AdminController],
@@ -31,7 +32,8 @@ import { CartService } from '../cart/cart.service';
     OrderRequestService,
     MailService,
     OrderService,
-    CartService
+    CartService,
+    BillService
   ],
 })
 export class AdminModule {}

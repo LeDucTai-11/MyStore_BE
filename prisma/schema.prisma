@@ -39,6 +39,7 @@ model User {
   updatedAt               DateTime?      @map("updated_at") @db.Timestamp()
   deletedAt               DateTime?      @map("deleted_at") @db.Timestamp()
   OrderRequest            OrderRequest[]
+  Bill                    Bill[]
 
   @@map("user")
 }
@@ -266,6 +267,8 @@ model OrderStatus {
 
 model Bill {
   id            String    @id @default(uuid())
+  createdBy     String    @map("created_by")
+  user          User      @relation(fields: [createdBy], references: [id])
   orderId       String    @map("order_id")
   order         Order     @relation(fields: [orderId], references: [id])
   typeOfPayment String?   @map("type_of_payment")

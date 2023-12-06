@@ -60,6 +60,8 @@ import { OrderRequestService } from '../order-request/order-request.service';
 import { FilterOrderRequestDto } from '../order-request/dto/filter-order-request.dto';
 import { OrderService } from '../order/order.service';
 import { FilterOrderDto } from '../order/dto/filter-order.dto';
+import { FilterBillDto } from '../bill/dto/filter-bill.dto';
+import { BillService } from '../bill/bill.service';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -75,6 +77,7 @@ export class AdminController {
     private readonly voucherService: VoucherService,
     private readonly orderRequestService: OrderRequestService,
     private readonly orderService: OrderService,
+    private readonly billService: BillService,
   ) {}
 
   @Get('/users')
@@ -315,7 +318,7 @@ export class AdminController {
 
   @Get('/order')
   @UseGuards(RoleGuard(Role.Admin))
-  findAllOrdes(@Query() queryData: FilterOrderDto) {
+  findAllOrders(@Query() queryData: FilterOrderDto) {
     return this.orderService.findAll(queryData);
   }
 
@@ -323,5 +326,17 @@ export class AdminController {
   @UseGuards(RoleGuard(Role.Admin))
   findOrderById(@Param('id') id: string) {
     return this.orderService.findById(id);
+  }
+
+  @Get('/bill')
+  @UseGuards(RoleGuard(Role.Admin))
+  findAllBills(@Query() queryData: FilterBillDto) {
+    return this.billService.findAll(queryData);
+  }
+
+  @Get('/bill/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  findBillID(@Param('id') id: string) {
+    return this.billService.findByID(id);
   }
 }
