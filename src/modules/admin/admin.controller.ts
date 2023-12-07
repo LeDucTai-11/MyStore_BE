@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Request,
   Res,
   UploadedFile,
@@ -62,6 +63,7 @@ import { OrderService } from '../order/order.service';
 import { FilterOrderDto } from '../order/dto/filter-order.dto';
 import { FilterBillDto } from '../bill/dto/filter-bill.dto';
 import { BillService } from '../bill/bill.service';
+import { ConfirmOrderDto } from '../order/dto/create-order.dto';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -314,6 +316,12 @@ export class AdminController {
       req,
       id,
     );
+  }
+
+  @Post('/order')
+  @UseGuards(RoleGuard(Role.Admin))
+  createOrder(@Req() req: Request,@Body() body: ConfirmOrderDto) {
+    return this.orderService.createOrder(req,body);
   }
 
   @Get('/order')
