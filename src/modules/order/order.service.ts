@@ -12,12 +12,15 @@ import { CartService } from '../cart/cart.service';
 import { FilterOrderDto } from './dto/filter-order.dto';
 import { Pagination, getOrderBy } from 'src/core/utils';
 import { VoucherType } from 'src/core/enum/voucher.enum';
+import { UsersService } from '../users/users.service';
+import { Role } from 'src/core/enum/roles.enum';
 
 @Injectable()
 export class OrderService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly cartService: CartService,
+    private readonly userService: UsersService,
   ) {}
 
   async createOrder(req: any, body: ConfirmOrderDto) {
@@ -110,22 +113,22 @@ export class OrderService {
           });
           const foundProductStore = await tx.productStore.findFirst({
             where: {
-              id: op.productStoreId
+              id: op.productStoreId,
             },
             select: {
               id: true,
               amount: true,
               product: true,
-            }
-          })
+            },
+          });
           await tx.productStore.update({
             where: {
               id: foundProductStore.id,
             },
             data: {
               amount: foundProductStore.amount - op.quantity,
-              updatedAt: new Date()
-            }
+              updatedAt: new Date(),
+            },
           });
           await tx.product.update({
             where: {
@@ -133,14 +136,14 @@ export class OrderService {
             },
             data: {
               amount: foundProductStore.product.amount - op.quantity,
-              updatedAt: new Date()
-            }
-          })
+              updatedAt: new Date(),
+            },
+          });
         }),
       );
 
       // Step: Add user to voucher's metadata
-      if (foundVoucher.id) {
+      if (foundVoucher) {
         await tx.voucher.update({
           where: {
             id: foundVoucher.id,
@@ -159,25 +162,50 @@ export class OrderService {
         });
       }
 
+      // Step: Check isUser
+      const isUser = (await this.userService.getRolesByReq(req)).find(
+        (x) => x.roleId === Role.User,
+      );
       // Create Order Request with Order ID
-      await tx.orderRequest.create({
-        data: {
-          createdBy: req.user.id,
-          typeOfRequest: OrderRequesType.CREATE,
-          requestStatusId: RequestStatus.Pending,
-          orderId: newOrder.id,
-        },
-      });
+      if (isUser) {
+        await tx.orderRequest.create({
+          data: {
+            createdBy: req.user.id,
+            typeOfRequest: OrderRequesType.CREATE,
+            requestStatusId: RequestStatus.Pending,
+            orderId: newOrder.id,
+          },
+        });
 
-      // Clear Cart
-      await this.cartService.clearCart(req);
+        // Clear Cart
+        await this.cartService.clearCart(req);
+      } else {
+        await tx.order.update({
+          where: {
+            id: newOrder.id,
+          },
+          data: {
+            orderStatusId: OrderStatus.CONFIRMED,
+            updatedAt: new Date(),
+          },
+        });
+
+        // Step: Create Bill
+        await tx.bill.create({
+          data: {
+            orderId: newOrder.id,
+            createdBy: req.user.id,
+          },
+        });
+      }
     });
     return newOrder;
   }
 
   async findAll(queryData: FilterOrderDto, req = null) {
-    const { search, take, skip, paymentMethod, order, orderStatusId } = queryData;
-    
+    const { search, take, skip, paymentMethod, order, orderStatusId } =
+      queryData;
+
     const query: any = {
       where: {
         paymentMethod: paymentMethod ?? undefined,
@@ -245,7 +273,7 @@ export class OrderService {
         discountValue =
           item['voucher'].type === VoucherType.FIXED
             ? item['voucher'].discountValue
-            : item.total * item['voucher'].discountValue / 100;
+            : (item.total * item['voucher'].discountValue) / 100;
       }
       const orderDetails = item['orderDetails'].map(async (od) => {
         const foundProductStore =
@@ -314,7 +342,7 @@ export class OrderService {
       discountValue =
         foundOrder['voucher'].type === VoucherType.FIXED
           ? foundOrder['voucher'].discountValue
-          : foundOrder.total * foundOrder['voucher'].discountValue / 100;
+          : (foundOrder.total * foundOrder['voucher'].discountValue) / 100;
     }
     const orderDetails = foundOrder.orderDetails.map(async (od) => {
       const foundProductStore = await this.prismaService.productStore.findFirst(

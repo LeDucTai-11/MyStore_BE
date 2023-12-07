@@ -336,52 +336,7 @@ export class OrderRequestService {
   ) {
     if (requestStatusId === RequestStatus.Approved) {
       return this.prismaService.$transaction(async (tx) => {
-        const updatedOrder = await tx.order.update({
-          where: {
-            id: order.id,
-          },
-          data: {
-            orderStatusId: OrderStatus.CANCELED,
-            deletedAt: new Date(),
-          },
-        });
-        await tx.orderDetail.updateMany({
-          where: {
-            orderId: order.id,
-          },
-          data: {
-            deletedAt: new Date(),
-          },
-        });
-
-        // Step: Update amount of Product,ProductStores
-        await Promise.all(
-          order.orderDetails.map(async (od) => {
-            const foundProduct = await tx.product.findFirst({
-              where: {
-                id: od.productStore.productId,
-              },
-            });
-            await tx.productStore.update({
-              where: {
-                id: od.productStore.id,
-              },
-              data: {
-                amount: od.productStore.amount + od.quantity,
-                updatedAt: new Date(),
-              },
-            });
-            await tx.product.update({
-              where: {
-                id: foundProduct.id,
-              },
-              data: {
-                amount: foundProduct.amount + od.quantity,
-                updatedAt: new Date(),
-              },
-            });
-          }),
-        );
+        const updatedOrder = await this.flowCancelOrder(order);
         return {
           status: true,
           data: updatedOrder,
@@ -438,52 +393,8 @@ export class OrderRequestService {
       });
     } else if (requestStatusId === RequestStatus.Rejected) {
       return this.prismaService.$transaction(async (tx) => {
-        await tx.order.update({
-          where: {
-            id: order.id,
-          },
-          data: {
-            orderStatusId: OrderStatus.CANCELED,
-            deletedAt: new Date(),
-          },
-        });
-        await tx.orderDetail.updateMany({
-          where: {
-            orderId: order.id,
-          },
-          data: {
-            deletedAt: new Date(),
-          },
-        });
-
-        // Step: Update amount of Product,ProductStores
-        await Promise.all(
-          order.orderDetails.map(async (od) => {
-            const foundProduct = await tx.product.findFirst({
-              where: {
-                id: od.productStore.productId,
-              },
-            });
-            await tx.productStore.update({
-              where: {
-                id: od.productStore.id,
-              },
-              data: {
-                amount: od.productStore.amount + od.quantity,
-                updatedAt: new Date(),
-              },
-            });
-            await tx.product.update({
-              where: {
-                id: foundProduct.id,
-              },
-              data: {
-                amount: foundProduct.amount + od.quantity,
-                updatedAt: new Date(),
-              },
-            });
-          }),
-        );
+        // Step: Flow cancel order
+        await this.flowCancelOrder(order);
 
         // Step: Remove user in voucher's metadata
         if (order.voucherId) {
@@ -534,69 +445,39 @@ export class OrderRequestService {
 
       if (foundOrderRequest) {
         return this.prismaService.$transaction(async (tx) => {
-          const orderDetails = await tx.orderDetail.findMany({
+          const order = await this.prismaService.order.findUnique({
             where: {
-              orderId: foundOrderRequest.orderId,
+              id: foundOrderRequest.orderId,
             },
             select: {
               id: true,
-              quantity: true,
-              productStore: {
+              total: true,
+              shipping: true,
+              paymentMethod: true,
+              voucherId: true,
+              voucher: true,
+              metadata: true,
+              createdBy: true,
+              orderDetails: {
                 select: {
                   id: true,
-                  amount: true,
-                  productId: true,
-                  product: true,
+                  quantity: true,
+                  productStore: {
+                    select: {
+                      id: true,
+                      amount: true,
+                      productId: true,
+                      product: true,
+                    },
+                  },
                 },
               },
             },
           });
-          await tx.orderDetail.updateMany({
-            where: {
-              orderId: foundOrderRequest.orderId,
-            },
-            data: {
-              deletedAt: new Date(),
-            },
-          });
-          await tx.order.update({
-            where: {
-              id: foundOrderRequest.orderId,
-            },
-            data: {
-              orderStatusId: OrderStatus.CANCELED,
-              deletedAt: new Date(),
-            },
-          });
 
-          // Step: Update amount of Product,ProductStores
-          await Promise.all(
-            orderDetails.map(async (od) => {
-              const foundProduct = await tx.product.findFirst({
-                where: {
-                  id: od.productStore.productId,
-                },
-              });
-              await tx.productStore.update({
-                where: {
-                  id: od.productStore.id,
-                },
-                data: {
-                  amount: od.productStore.amount + od.quantity,
-                  updatedAt: new Date(),
-                },
-              });
-              await tx.product.update({
-                where: {
-                  id: foundProduct.id,
-                },
-                data: {
-                  amount: foundProduct.amount + od.quantity,
-                  updatedAt: new Date(),
-                },
-              });
-            }),
-          );
+          // Step: Flow Cancel Order
+          await this.flowCancelOrder(order);
+
           return await this.prismaService.orderRequest.update({
             where: {
               id: foundOrderRequest.id,
@@ -646,5 +527,58 @@ export class OrderRequestService {
       });
     }
     throw new BadRequestException('ACTION_NOT_FOUND');
+  }
+
+  async flowCancelOrder(order: any) {
+    return await this.prismaService.$transaction(async (tx) => {
+      await tx.orderDetail.updateMany({
+        where: {
+          orderId: order.id,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+      const updatedOrder = await tx.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          orderStatusId: OrderStatus.CANCELED,
+          deletedAt: new Date(),
+        },
+      });
+
+      // Step: Update amount of Product,ProductStores
+      await Promise.all(
+        order.orderDetails.map(async (od) => {
+          const foundProduct = await tx.product.findFirst({
+            where: {
+              id: od.productStore.productId,
+            },
+          });
+          await tx.productStore.update({
+            where: {
+              id: od.productStore.id,
+            },
+            data: {
+              amount: od.productStore.amount + od.quantity,
+              updatedAt: new Date(),
+            },
+          });
+          await tx.product.update({
+            where: {
+              id: foundProduct.id,
+            },
+            data: {
+              amount: foundProduct.amount + od.quantity,
+              updatedAt: new Date(),
+            },
+          });
+        }),
+      );
+
+      return updatedOrder;
+    });
   }
 }

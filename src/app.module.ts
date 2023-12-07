@@ -21,6 +21,7 @@ import { ExportFileModule } from './modules/export-file/export-file.module';
 import { OrderModule } from './modules/order/order.module';
 import { OrderRequestModule } from './modules/order-request/order-request.module';
 import { BillModule } from './modules/bill/bill.module';
+import { StaffModule } from './modules/staff/staff.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { BillModule } from './modules/bill/bill.module';
     OrderModule,
     OrderRequestModule,
     BillModule,
+    StaffModule,
   ],
   controllers: [AppController],
   providers: [AppService],

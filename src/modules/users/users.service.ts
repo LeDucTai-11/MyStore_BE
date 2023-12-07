@@ -243,7 +243,7 @@ export class UsersService {
         ...createUserDTO,
         userRoles: {
           create: {
-            roleId: isUser ? Role.User : Role.Cashier,
+            roleId: isUser ? Role.User : Role.Staff,
           },
         },
         userCart: {
@@ -421,5 +421,17 @@ export class UsersService {
         updatedAt: true,
       },
     });
+  }
+
+  async getRolesByReq(req: any) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: req.user.id,
+      },
+      select: {
+        userRoles: true,
+      },
+    });
+    return user.userRoles;
   }
 }

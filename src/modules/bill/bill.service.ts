@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FilterBillDto } from './dto/filter-bill.dto';
 import { Pagination, getOrderBy } from 'src/core/utils';
+import { VoucherType } from 'src/core/enum/voucher.enum';
 
 @Injectable()
 export class BillService {
@@ -82,7 +83,44 @@ export class BillService {
       }),
       this.prismaService.bill.findMany(query),
     ]);
-    return Pagination.of(take, skip, total, await Promise.all(bills));
+    const billPromises = bills.map(async (bill) => {
+      const order = bill['order'];
+      let discountValue = 0;
+      if (order['voucher']) {
+        discountValue =
+          order['voucher'].type === VoucherType.FIXED
+            ? order['voucher'].discountValue
+            : (order.total * order['voucher'].discountValue) / 100;
+      }
+      const orderDetails = order['orderDetails'].map(async (od) => {
+        const foundProductStore =
+          await this.prismaService.productStore.findFirst({
+            where: {
+              id: od.productStoreId,
+            },
+            select: {
+              product: true,
+              store: true,
+            },
+          });
+        return {
+          ...od,
+          product: foundProductStore.product,
+          store: foundProductStore.store,
+        };
+      });
+      return {
+        ...bill,
+        order: {
+          ...order,
+          subTotal: order.total,
+          discountValue,
+          total: order.total + order.shipping - discountValue,
+          orderDetails: await Promise.all(orderDetails),
+        },
+      };
+    });
+    return Pagination.of(take, skip, total, await Promise.all(billPromises));
   }
 
   async findByID(id: string) {
@@ -132,9 +170,45 @@ export class BillService {
         createdAt: true,
       },
     });
-    if(!foundBill) {
-        throw new NotFoundException('The bill was not found');
+    if (!foundBill) {
+      throw new NotFoundException('The bill was not found');
     }
+    const order = foundBill['order'];
+    let discountValue = 0;
+    if (order['voucher']) {
+      discountValue =
+        order['voucher'].type === VoucherType.FIXED
+          ? order['voucher'].discountValue
+          : (order.total * order['voucher'].discountValue) / 100;
+    }
+    const orderDetails = order['orderDetails'].map(async (od) => {
+      const foundProductStore = await this.prismaService.productStore.findFirst(
+        {
+          where: {
+            id: od.productStoreId,
+          },
+          select: {
+            product: true,
+            store: true,
+          },
+        },
+      );
+      return {
+        ...od,
+        product: foundProductStore.product,
+        store: foundProductStore.store,
+      };
+    });
+    return {
+      ...foundBill,
+      order: {
+        ...order,
+        subTotal: order.total,
+        discountValue,
+        total: order.total + order.shipping - discountValue,
+        orderDetails: await Promise.all(orderDetails),
+      },
+    };
     return foundBill;
   }
 }
