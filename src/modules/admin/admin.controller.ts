@@ -100,6 +100,12 @@ export class AdminController {
     return this.userService.createUser(body, false);
   }
 
+  @Delete('/cashiers/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  deleteStaff(@Param('id') id: string) {
+    return this.userService.deleteUser(id);
+  }
+
   @Post('/category')
   @UseGuards(RoleGuard(Role.Admin))
   createCategory(@Body() body: CreateCategoryDTO) {

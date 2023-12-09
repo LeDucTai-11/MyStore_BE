@@ -227,6 +227,18 @@ export class UsersService {
     return user;
   }
 
+  async deleteUser(id: string) {
+    await this.findByID(id);
+    return this.prismaService.user.update({
+      where: {
+        id,
+      },
+      data: {
+        deletedAt: new Date()
+      }
+    });
+  }
+
   async createUser(createUserDTO: CreateUserDTO, isUser = true) {
     if (
       (await this.findByEmail(createUserDTO.email)) ||
