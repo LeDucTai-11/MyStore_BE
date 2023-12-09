@@ -85,6 +85,7 @@ export class UsersService {
           },
         },
         createdAt: true,
+        deletedAt: true,
       },
     };
     if (queryData.active !== undefined) {
