@@ -8,6 +8,7 @@ import { ProductService } from '../product/product.service';
 import { StoreService } from '../store/store.service';
 import { CategoryService } from '../category/category.service';
 import { ExportFileService } from '../export-file/export-file.service';
+import { BillService } from '../bill/bill.service';
 
 @Module({
   controllers: [StaffController],
@@ -19,7 +20,8 @@ import { ExportFileService } from '../export-file/export-file.service';
     ProductService,
     StoreService,
     CategoryService,
-    ExportFileService
+    ExportFileService,
+    BillService
   ],
 })
 export class StaffModule {}

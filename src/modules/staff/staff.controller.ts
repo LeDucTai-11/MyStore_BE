@@ -7,6 +7,8 @@ import RoleGuard from 'src/core/guards/roles/roles.guard';
 import { ConfirmOrderDto } from '../order/dto/create-order.dto';
 import { OrderService } from '../order/order.service';
 import { Request } from 'express';
+import { FilterBillDto } from '../bill/dto/filter-bill.dto';
+import { BillService } from '../bill/bill.service';
 
 @ApiTags('staff')
 @Controller('staff')
@@ -15,7 +17,8 @@ import { Request } from 'express';
 export class StaffController {
   constructor(
     private readonly userService: UsersService,
-    private readonly orderService: OrderService
+    private readonly orderService: OrderService,
+    private readonly billService: BillService,
     ) {}
 
   @Get('/users')
@@ -28,5 +31,11 @@ export class StaffController {
   @UseGuards(RoleGuard(Role.Staff))
   createOrder(@Req() req: Request,@Body() body: ConfirmOrderDto) {
     return this.orderService.createOrder(req,body);
+  }
+
+  @Get('/bill')
+  @UseGuards(RoleGuard(Role.Staff))
+  findAllBills(@Query() queryData: FilterBillDto) {
+    return this.billService.findAll(queryData);
   }
 }

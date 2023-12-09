@@ -12,6 +12,8 @@ import { StoreService } from '../store/store.service';
 import { ExportProductStoreDTO } from './dto/export-product-store.dto';
 import { ExportFileService } from '../export-file/export-file.service';
 import { ResponseProductStoreDTO } from './dto/response-product-store.dto';
+import { Prisma } from '@prisma/client';
+import { FilterTopSellProductDto } from './dto/filter-top-sell-product.dto';
 
 @Injectable()
 export class ProductService {
@@ -19,7 +21,7 @@ export class ProductService {
     private readonly prismaService: PrismaService,
     private readonly categoryService: CategoryService,
     private readonly storeService: StoreService,
-    private readonly exportFileService: ExportFileService
+    private readonly exportFileService: ExportFileService,
   ) {}
 
   async createProduct(createProductDTO: CreateProducDTO) {
@@ -59,9 +61,9 @@ export class ProductService {
     });
     return {
       success: true,
-      message: "Transaction completed successfully.",
+      message: 'Transaction completed successfully.',
       newProduct,
-    }
+    };
   }
 
   async findByName(name: string) {
@@ -137,7 +139,7 @@ export class ProductService {
     return Pagination.of(take, skip, total, products);
   }
 
-  async findByID(id: string,queryData = undefined) {
+  async findByID(id: string, queryData = undefined) {
     if (queryData && queryData.storeId) {
       await this.storeService.findByID(queryData.storeId);
     }
@@ -170,13 +172,15 @@ export class ProductService {
       throw new NotFoundException(`Product not found with ID : ${id}`);
     }
     let foundProductStore = null;
-    if(queryData && queryData.storeId) {
-      foundProductStore = product.productStores.find((x) => x.storeId === queryData.storeId && x.deletedAt === null);
+    if (queryData && queryData.storeId) {
+      foundProductStore = product.productStores.find(
+        (x) => x.storeId === queryData.storeId && x.deletedAt === null,
+      );
     }
     return {
       ...product,
       productStores: undefined,
-      amount: (foundProductStore) ? foundProductStore.amount : product.amount,
+      amount: foundProductStore ? foundProductStore.amount : product.amount,
       productStore: foundProductStore ?? undefined,
     };
   }
@@ -252,17 +256,17 @@ export class ProductService {
         product: {
           select: {
             name: true,
-          }
+          },
         },
-      }
+      },
     });
     const datas: ResponseProductStoreDTO[] = productStores.map((p) => {
       const res: ResponseProductStoreDTO = {
         id: p.id,
         productName: p.product.name,
-      }
+      };
       return res;
-    })
+    });
     return datas;
   }
 
@@ -283,7 +287,7 @@ export class ProductService {
       {
         label: 'PricePerProduct',
         value: '',
-      }
+      },
     ];
     return this.exportFileService.exportToCSV(data, fields);
   }
@@ -309,26 +313,90 @@ export class ProductService {
         header: 'PricePerProduct',
         key: '',
         width: 30,
-      }
+      },
     ];
-    return await this.exportFileService.exportToExcel(data, fields, 'ProductStores');
+    return await this.exportFileService.exportToExcel(
+      data,
+      fields,
+      'ProductStores',
+    );
   }
 
   async exportProductStoresToPDF(data: ResponseProductStoreDTO[]) {
-    const fields = [
-      'ProductStoreID',
-      'ProductName',
-      'QuantityImport'
-    ];
-    const dataExport = data.map((row) => [
-      row.id,
-      row.productName,
-      ''
-    ]);
+    const fields = ['ProductStoreID', 'ProductName', 'QuantityImport'];
+    const dataExport = data.map((row) => [row.id, row.productName, '']);
     return await this.exportFileService.exportToPDF(
       dataExport,
       fields,
       'ProductStores',
     );
+  }
+
+  async getTopSellProducts(queryData: FilterTopSellProductDto) {
+    const { storeId } = queryData;
+    await this.storeService.findByID(storeId);
+    const storeQuery = storeId
+      ? Prisma.sql`and ps.storeId = ${storeId}`
+      : Prisma.sql``;
+    const sql = Prisma.sql`
+    SELECT od.product_store_id as productStoreId,p.id as productId,SUM(od.quantity) AS totalQuantitySold
+      FROM order_detail od
+      JOIN product_store ps ON od.product_store_id = ps.id
+      JOIN product as p ON p.id = ps.productId
+      WHERE ps.deleted_at is null ${storeQuery}
+      GROUP BY od.product_store_id
+      ORDER BY totalQuantitySold DESC;
+  `;
+
+    let result: any[] = await this.prismaService.$queryRaw(sql);
+    const listProducts = [];
+    result.forEach((x) => {
+      const existingProduct = listProducts.find(
+        (item) => item.productId === x.productId,
+      );
+      if (existingProduct) {
+        existingProduct.totalQuantitySold += Number(x.totalQuantitySold);
+      } else {
+        listProducts.push({
+          ...x,
+          totalQuantitySold: Number(x.totalQuantitySold),
+        });
+      }
+    });
+
+    result = await Promise.all(
+      listProducts.map(async (x) => {
+        if (storeId) {
+          const foundProductStore =
+            await this.prismaService.productStore.findFirst({
+              where: {
+                id: x.productStoreId,
+              },
+              select: {
+                amount: true,
+                product: true,
+              },
+            });
+          return {
+            totalQuantitySold: x.totalQuantitySold,
+            product: {
+              ...foundProductStore.product,
+              amountOfProductStore: foundProductStore.amount,
+            },
+          };
+        } else {
+          const foundProduct = await this.prismaService.product.findFirst({
+            where: {
+              id: x.productId,
+            },
+          });
+          return {
+            totalQuantitySold: x.totalQuantitySold,
+            product: foundProduct,
+          };
+        }
+      }),
+    );
+    return result.sort((a, b) => b.totalQuantitySold - a.totalQuantitySold);
   }
 }
