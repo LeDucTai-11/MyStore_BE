@@ -13,19 +13,19 @@ import { PaymentMethod } from 'src/core/enum/orderRequest.enum';
 
 
 export class ContactDetailDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   firstName: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   lastName: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   phoneNumber: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   address: string;
 }

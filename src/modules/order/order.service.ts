@@ -14,6 +14,7 @@ import { Pagination, getOrderBy } from 'src/core/utils';
 import { VoucherType } from 'src/core/enum/voucher.enum';
 import { UsersService } from '../users/users.service';
 import { Role } from 'src/core/enum/roles.enum';
+import { isEmpty } from 'lodash';
 
 @Injectable()
 export class OrderService {
@@ -24,6 +25,9 @@ export class OrderService {
   ) {}
 
   async createOrder(req: any, body: ConfirmOrderDto) {
+    if(isEmpty(body.productStores)) {
+      throw new BadRequestException('List Product is not null');
+    }
     const productStoreIds = body.productStores.map((x) => x.productStoreId);
     const productStores = await this.prismaService.productStore.findMany({
       where: {
