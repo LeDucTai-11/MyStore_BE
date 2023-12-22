@@ -343,29 +343,35 @@ export class ProductService {
       : Prisma.sql``;
     const sql = Prisma.sql`
     SELECT od.product_store_id as productStoreId,p.id as productId,SUM(od.quantity) AS totalQuantitySold
-      FROM order_detail od
+      FROM \`order\` o
+      JOIN order_detail od ON od.order_id = o.id
       JOIN product_store ps ON od.product_store_id = ps.id
       JOIN product as p ON p.id = ps.productId
-      WHERE ps.deleted_at is null ${storeQuery} ${validDateQuery}
+      WHERE ps.deleted_at is null AND o.order_status_id = 2 ${storeQuery} ${validDateQuery}
       GROUP BY od.product_store_id
       ORDER BY totalQuantitySold DESC;
   `;
 
     let result: any[] = await this.prismaService.$queryRaw(sql);
-    const listProducts = [];
-    result.forEach((x) => {
-      const existingProduct = listProducts.find(
-        (item) => item.productId === x.productId,
-      );
-      if (existingProduct) {
-        existingProduct.totalQuantitySold += Number(x.totalQuantitySold);
-      } else {
-        listProducts.push({
-          ...x,
-          totalQuantitySold: Number(x.totalQuantitySold),
-        });
-      }
-    });
+
+    let listProducts = [];
+    if(storeId) {
+      listProducts = result;
+    }else {
+      result.forEach((x) => {
+        const existingProduct = listProducts.find(
+          (item) => item.productId === x.productId,
+        );
+        if (existingProduct) {
+          existingProduct.totalQuantitySold += Number(x.totalQuantitySold);
+        } else {
+          listProducts.push({
+            ...x,
+            totalQuantitySold: Number(x.totalQuantitySold),
+          });
+        }
+      });
+    }
 
     result = await Promise.all(
       listProducts.map(async (x) => {
