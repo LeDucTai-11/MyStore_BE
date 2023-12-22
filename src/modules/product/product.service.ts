@@ -333,17 +333,20 @@ export class ProductService {
   }
 
   async getTopSellProducts(queryData: FilterTopSellProductDto) {
-    const { storeId } = queryData;
+    const { storeId, startDate, endDate } = queryData;
     await this.storeService.findByID(storeId);
     const storeQuery = storeId
       ? Prisma.sql`and ps.storeId = ${storeId}`
+      : Prisma.sql``;
+    const validDateQuery = (startDate && endDate)
+      ? Prisma.sql`and (${endDate} >= Date(od.created_at) AND ${startDate} <= Date(od.created_at))`
       : Prisma.sql``;
     const sql = Prisma.sql`
     SELECT od.product_store_id as productStoreId,p.id as productId,SUM(od.quantity) AS totalQuantitySold
       FROM order_detail od
       JOIN product_store ps ON od.product_store_id = ps.id
       JOIN product as p ON p.id = ps.productId
-      WHERE ps.deleted_at is null ${storeQuery}
+      WHERE ps.deleted_at is null ${storeQuery} ${validDateQuery}
       GROUP BY od.product_store_id
       ORDER BY totalQuantitySold DESC;
   `;

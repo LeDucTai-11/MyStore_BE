@@ -8,4 +8,19 @@ export class FilterTopSellProductDto {
   })
   @IsOptional()
   storeId?: string;
+
+  @ApiPropertyOptional({
+    description: '',
+    example: new Date().toISOString().slice(0, 10),
+  })
+  @IsOptional()
+  startDate?: Date;
+
+
+  @ApiPropertyOptional({
+    description: '',
+    example: new Date().toISOString().slice(0, 10),
+  })
+  @IsOptional()
+  endDate?: Date;
 }

@@ -64,6 +64,8 @@ import { FilterOrderDto } from '../order/dto/filter-order.dto';
 import { FilterBillDto } from '../bill/dto/filter-bill.dto';
 import { BillService } from '../bill/bill.service';
 import { ConfirmOrderDto } from '../order/dto/create-order.dto';
+import { GetStatisticRevenueDto } from './dto/statistic-revenue.dto';
+import { AdminService } from './admin.service';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -80,6 +82,7 @@ export class AdminController {
     private readonly orderRequestService: OrderRequestService,
     private readonly orderService: OrderService,
     private readonly billService: BillService,
+    private readonly adminService: AdminService,
   ) {}
 
   @Get('/users')
@@ -144,8 +147,8 @@ export class AdminController {
     type: String,
     example: '',
   })
-  findProductById(@Param('id') id: string,@Query() queryData: any) {
-    return this.productService.findByID(id,queryData);
+  findProductById(@Param('id') id: string, @Query() queryData: any) {
+    return this.productService.findByID(id, queryData);
   }
 
   @Post('/products')
@@ -295,7 +298,7 @@ export class AdminController {
   @Patch('/voucher/:id')
   @UseGuards(RoleGuard(Role.Admin))
   updateVoucher(@Param('id') id: string, @Body() body: UpdateVoucherDTO) {
-    return this.voucherService.updateVoucher(id,body);
+    return this.voucherService.updateVoucher(id, body);
   }
 
   @Get('/order-request')
@@ -326,8 +329,8 @@ export class AdminController {
 
   @Post('/order')
   @UseGuards(RoleGuard(Role.Admin))
-  createOrder(@Req() req: Request,@Body() body: ConfirmOrderDto) {
-    return this.orderService.createOrder(req,body);
+  createOrder(@Req() req: Request, @Body() body: ConfirmOrderDto) {
+    return this.orderService.createOrder(req, body);
   }
 
   @Get('/order')
@@ -352,5 +355,32 @@ export class AdminController {
   @UseGuards(RoleGuard(Role.Admin))
   findBillID(@Param('id') id: string) {
     return this.billService.findByID(id);
+  }
+
+  @Get('/statistic/revenue')
+  @UseGuards(RoleGuard(Role.Admin))
+  getStatisticRevenue(@Query() queryData: GetStatisticRevenueDto) {
+    return this.adminService.getStatisticRevenue(queryData);
+  }
+
+  @Get('/statistic/detail')
+  @UseGuards(RoleGuard(Role.Admin))
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: Date,
+    example: new Date().toISOString().slice(0, 10),
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: Date,
+    example: new Date().toISOString().slice(0, 10),
+  })
+  async getStatisticDetail(@Query() queryDate: any) {
+    return this.adminService.getStatisticDetail(
+      new Date(queryDate.startDate),
+      new Date(queryDate.endDate),
+    );
   }
 }
