@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from '../users/users.service';
 import { FilterUserDto } from '../users/dto';
@@ -35,7 +35,14 @@ export class StaffController {
 
   @Get('/bill')
   @UseGuards(RoleGuard(Role.Staff))
-  findAllBills(@Query() queryData: FilterBillDto) {
+  findAllBills(@Req() req: Request, @Query() queryData: FilterBillDto) {
+    queryData.createdBy = req['user'].id;
     return this.billService.findAll(queryData);
+  }
+
+  @Get('/bill/:id')
+  @UseGuards(RoleGuard(Role.Staff))
+  findBillID(@Param('id') id: string) {
+    return this.billService.findByID(id);
   }
 }

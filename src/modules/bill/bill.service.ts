@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { FilterBillDto } from './dto/filter-bill.dto';
 import { Pagination, getOrderBy } from 'src/core/utils';
 import { VoucherType } from 'src/core/enum/voucher.enum';
+import { Role } from 'src/core/enum/roles.enum';
 
 @Injectable()
 export class BillService {
@@ -13,6 +14,17 @@ export class BillService {
     const query: any = {
       where: {
         createdBy: createdBy ?? undefined,
+        order: {
+          user: {
+            userRoles: {
+              some: {
+                roleId: {
+                  in: [Role.Admin, Role.Staff],
+                },
+              },
+            },
+          },
+        },
       },
       take,
       skip,
