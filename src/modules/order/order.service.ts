@@ -5,7 +5,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ConfirmOrderDto } from './dto/create-order.dto';
-import { OrderRequesType, OrderStatus } from 'src/core/enum/orderRequest.enum';
+import {
+  OrderRequesType,
+  OrderStatus,
+  PaymentMethod,
+} from 'src/core/enum/orderRequest.enum';
 import { Prisma } from '@prisma/client';
 import { RequestStatus } from 'src/core/enum/requestStatus.enum';
 import { CartService } from '../cart/cart.service';
@@ -15,6 +19,8 @@ import { VoucherType } from 'src/core/enum/voucher.enum';
 import { UsersService } from '../users/users.service';
 import { Role } from 'src/core/enum/roles.enum';
 import { isEmpty } from 'lodash';
+import { PaymentService } from '../payment/payment.service';
+import { PaymentConfirmDto } from '../payment/dto/payment-confirm.dto';
 
 @Injectable()
 export class OrderService {
@@ -22,10 +28,11 @@ export class OrderService {
     private readonly prismaService: PrismaService,
     private readonly cartService: CartService,
     private readonly userService: UsersService,
+    private readonly paymentService: PaymentService,
   ) {}
 
   async createOrder(req: any, body: ConfirmOrderDto) {
-    if(isEmpty(body.productStores)) {
+    if (isEmpty(body.productStores)) {
       throw new BadRequestException('List Product is not null');
     }
     const productStoreIds = body.productStores.map((x) => x.productStoreId);
@@ -97,7 +104,10 @@ export class OrderService {
           shipping: body.shippingFee || 0,
           address: body.contact.address,
           createdBy: req.user.id,
-          orderStatusId: OrderStatus.PENDING_CONFIRM,
+          orderStatusId:
+            body.paymentMethod === PaymentMethod.CASH_ON_DELIVERY
+              ? OrderStatus.PENDING_CONFIRM
+              : OrderStatus.PENDING_PAYMENT,
           paymentMethod: body.paymentMethod,
           voucherId: body.voucherId || null,
           metadata: jsonMetadata,
@@ -172,14 +182,16 @@ export class OrderService {
       );
       // Create Order Request with Order ID
       if (isUser) {
-        await tx.orderRequest.create({
-          data: {
-            createdBy: req.user.id,
-            typeOfRequest: OrderRequesType.CREATE,
-            requestStatusId: RequestStatus.Pending,
-            orderId: newOrder.id,
-          },
-        });
+        if (body.paymentMethod === PaymentMethod.CASH_ON_DELIVERY) {
+          await tx.orderRequest.create({
+            data: {
+              createdBy: req.user.id,
+              typeOfRequest: OrderRequesType.CREATE,
+              requestStatusId: RequestStatus.Pending,
+              orderId: newOrder.id,
+            },
+          });
+        }
 
         // Clear Cart
         await this.cartService.clearCart(req);
@@ -203,7 +215,18 @@ export class OrderService {
         });
       }
     });
-    return newOrder;
+    let urlPayment = null;
+    if (body.paymentMethod === PaymentMethod.BANKING) {
+      urlPayment = this.paymentService.createUrlPayment(
+        req,
+        newOrder.id,
+        totalOrderPrices,
+      );
+    }
+    return {
+      ...newOrder,
+      urlPayment: urlPayment ? urlPayment : undefined,
+    };
   }
 
   async findAll(queryData: FilterOrderDto, req = null) {
@@ -371,5 +394,46 @@ export class OrderService {
       total: foundOrder.total + foundOrder.shipping - discountValue,
       orderDetails: await Promise.all(orderDetails),
     };
+  }
+
+  async paymentConfirm(req: any, orderId: string, body: PaymentConfirmDto) {
+    const foundOrder = await this.prismaService.order.findFirst({
+      where: {
+        id: orderId,
+        createdBy: req.user.id,
+        orderStatusId: OrderStatus.PENDING_PAYMENT,
+      }
+    });
+    if(!foundOrder) {
+      throw new NotFoundException('Order not found with ID:' + orderId);
+    }
+    return this.prismaService.$transaction(async(tx) => {
+      // Save a record payment
+      await tx.payment.create({
+        data: {
+          orderId,
+          ...body,
+        }
+      });
+
+      // Update status of Order
+      await tx.order.update({
+        where: {
+          id: foundOrder.id,
+        },
+        data: {
+          orderStatusId: OrderStatus.PAYMENT_CONFIRMED,
+          updatedAt: new Date(),
+        }
+      });
+
+      // Create bill
+      return tx.bill.create({
+        data: {
+          orderId: foundOrder.id,
+          createdBy: req.user.id,
+        }
+      })
+    })
   }
 }

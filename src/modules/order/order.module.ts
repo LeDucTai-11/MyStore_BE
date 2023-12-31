@@ -7,6 +7,7 @@ import { StoreService } from '../store/store.service';
 import { CategoryService } from '../category/category.service';
 import { ExportFileService } from '../export-file/export-file.service';
 import { UsersService } from '../users/users.service';
+import { PaymentService } from '../payment/payment.service';
 
 @Module({
   controllers: [OrderController],
@@ -17,7 +18,8 @@ import { UsersService } from '../users/users.service';
     StoreService,
     CategoryService,
     ExportFileService,
-    UsersService
+    UsersService,
+    PaymentService
   ],
 })
 export class OrderModule {}

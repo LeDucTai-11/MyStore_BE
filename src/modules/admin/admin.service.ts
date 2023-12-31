@@ -121,7 +121,7 @@ export class AdminService {
           lt: endDateTime,
         },
         deletedAt: null,
-        orderStatusId: OrderStatus.CONFIRMED,
+        orderStatusId: OrderStatus.CONFIRMED || OrderStatus.PAYMENT_CONFIRMED,
       },
       select: {
         total: true,

@@ -508,7 +508,7 @@ export class OrderRequestService {
       const foundOrder = await this.prismaService.order.findFirst({
         where: {
           id: createModifyBookingRequestDto.orderId,
-          orderStatusId: OrderStatus.CONFIRMED,
+          orderStatusId: OrderStatus.CONFIRMED || OrderStatus.PAYMENT_CONFIRMED,
           cancelExpiredAt: {
             gte: new Date(),
           },

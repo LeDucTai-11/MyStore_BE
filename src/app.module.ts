@@ -22,6 +22,7 @@ import { OrderModule } from './modules/order/order.module';
 import { OrderRequestModule } from './modules/order-request/order-request.module';
 import { BillModule } from './modules/bill/bill.module';
 import { StaffModule } from './modules/staff/staff.module';
+import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { StaffModule } from './modules/staff/staff.module';
     OrderRequestModule,
     BillModule,
     StaffModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

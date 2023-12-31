@@ -217,6 +217,7 @@ model Order {
   createdAt       DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
   updatedAt       DateTime?      @map("updated_at") @db.Timestamp()
   deletedAt       DateTime?      @map("deleted_at") @db.Timestamp()
+  Payment         Payment[]
 
   @@map("order")
 }
@@ -277,4 +278,21 @@ model Bill {
   deletedAt     DateTime? @map("deleted_at") @db.Timestamp()
 
   @@map("bill")
+}
+
+model Payment {
+  id                String    @id @default(uuid())
+  orderId           String    @map("order_id")
+  order             Order     @relation(fields: [orderId], references: [id])
+  amount            Float?    @db.Double
+  bankCode          String?   @map("bank_code")
+  transactionNumber String?   @map("transaction_number")
+  cardType          String?   @map("card_type")
+  orderInfo         String?   @map("order_info")
+  status            String?
+  createdAt         DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
+  updatedAt         DateTime? @map("updated_at") @db.Timestamp()
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamp()
+
+  @@map("payment")
 }
