@@ -236,7 +236,6 @@ export class OrderService {
     const query: any = {
       where: {
         paymentMethod: paymentMethod ?? undefined,
-        orderStatusId: orderStatusId ? Number(orderStatusId) : undefined,
         createdBy: req ? req.user.id : undefined,
       },
       take,
@@ -270,6 +269,19 @@ export class OrderService {
         createdAt: true,
       },
     };
+    if (orderStatusId) {
+      if (Number(orderStatusId) === OrderStatus.CONFIRMED) {
+        query.where.orderStatusId = {
+          in: [OrderStatus.CONFIRMED, OrderStatus.PAYMENT_CONFIRMED],
+        };
+      } else if (Number(orderStatusId) === OrderStatus.PENDING_CONFIRM) {
+        query.where.orderStatusId = {
+          in: [OrderStatus.PENDING_CONFIRM, OrderStatus.PENDING_PAYMENT],
+        };
+      } else {
+        query.where.orderStatusId = Number(orderStatusId);
+      }
+    }
     if (search) {
       query.where.user = {
         OR: [
@@ -402,18 +414,18 @@ export class OrderService {
         id: orderId,
         createdBy: req.user.id,
         orderStatusId: OrderStatus.PENDING_PAYMENT,
-      }
+      },
     });
-    if(!foundOrder) {
+    if (!foundOrder) {
       throw new NotFoundException('Order not found with ID:' + orderId);
     }
-    return this.prismaService.$transaction(async(tx) => {
+    return this.prismaService.$transaction(async (tx) => {
       // Save a record payment
       await tx.payment.create({
         data: {
           orderId,
           ...body,
-        }
+        },
       });
 
       // Update status of Order
@@ -424,7 +436,7 @@ export class OrderService {
         data: {
           orderStatusId: OrderStatus.PAYMENT_CONFIRMED,
           updatedAt: new Date(),
-        }
+        },
       });
 
       // Create bill
@@ -432,8 +444,8 @@ export class OrderService {
         data: {
           orderId: foundOrder.id,
           createdBy: req.user.id,
-        }
-      })
-    })
+        },
+      });
+    });
   }
 }
