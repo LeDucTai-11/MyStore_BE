@@ -16,6 +16,7 @@ import { OrderService } from '../order/order.service';
 import { CartService } from '../cart/cart.service';
 import { BillService } from '../bill/bill.service';
 import { PaymentService } from '../payment/payment.service';
+import { BullModule } from '@nestjs/bull';
 
 @Module({
   controllers: [AdminController],
@@ -37,5 +38,10 @@ import { PaymentService } from '../payment/payment.service';
     BillService,
     PaymentService
   ],
+  imports: [
+    BullModule.registerQueue({
+      name: 'scheduleOrder',
+    }),
+  ]
 })
 export class AdminModule {}

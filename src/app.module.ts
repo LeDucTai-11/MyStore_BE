@@ -23,6 +23,7 @@ import { OrderRequestModule } from './modules/order-request/order-request.module
 import { BillModule } from './modules/bill/bill.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { BullModule } from '@nestjs/bull';
 
 @Module({
   imports: [
@@ -33,6 +34,12 @@ import { PaymentModule } from './modules/payment/payment.module';
     AuthModule,
     MailModule,
     UsersModule,
+    BullModule.forRoot({
+      redis: {
+        host: process.env.REDIS_HOST,
+        port: Number(process.env.REDIS_PORT),
+      },
+    }),
     RedisModule,
     PrismaModule,
     CategoryModule,

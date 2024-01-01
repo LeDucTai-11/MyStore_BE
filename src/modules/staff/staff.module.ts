@@ -10,6 +10,7 @@ import { CategoryService } from '../category/category.service';
 import { ExportFileService } from '../export-file/export-file.service';
 import { BillService } from '../bill/bill.service';
 import { PaymentService } from '../payment/payment.service';
+import { BullModule } from '@nestjs/bull';
 
 @Module({
   controllers: [StaffController],
@@ -25,5 +26,10 @@ import { PaymentService } from '../payment/payment.service';
     BillService,
     PaymentService
   ],
+  imports: [
+    BullModule.registerQueue({
+      name: 'scheduleOrder',
+    }),
+  ]
 })
 export class StaffModule {}

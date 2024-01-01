@@ -21,6 +21,8 @@ import { Role } from 'src/core/enum/roles.enum';
 import { isEmpty } from 'lodash';
 import { PaymentService } from '../payment/payment.service';
 import { PaymentConfirmDto } from '../payment/dto/payment-confirm.dto';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 @Injectable()
 export class OrderService {
@@ -29,7 +31,63 @@ export class OrderService {
     private readonly cartService: CartService,
     private readonly userService: UsersService,
     private readonly paymentService: PaymentService,
-  ) {}
+    @InjectQueue('scheduleOrder') private readonly queueOrder: Queue,
+  ) {
+    if (process.env.ENABLE_ORDER_SCHEDULE === 'true') {
+      this.queueOrder.add(
+        'scheduleQueueOrder',
+        {},
+        {
+          repeat: {
+            key: 'repeat_order_queue',
+            cron: `0 */${process.env.CRONJOB_TIME_ORDER_MINUTE} * * * *`,
+          },
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+    }
+  }
+
+  async getOrderNeedCancel() {
+    const deadline = Number(process.env.ORDER_PAYMENT_CONFIRMATION_DEADLINE);
+    const currentTime = new Date();
+    currentTime.setMinutes(currentTime.getMinutes() - deadline);
+    return this.prismaService.order.findMany({
+      where: {
+        orderStatusId: OrderStatus.PENDING_PAYMENT,
+        paymentMethod: PaymentMethod.BANKING,
+        createdAt: {
+          lt: currentTime,
+        },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        total: true,
+        shipping: true,
+        paymentMethod: true,
+        voucherId: true,
+        voucher: true,
+        metadata: true,
+        createdBy: true,
+        orderDetails: {
+          select: {
+            id: true,
+            quantity: true,
+            productStore: {
+              select: {
+                id: true,
+                amount: true,
+                productId: true,
+                product: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 
   async createOrder(req: any, body: ConfirmOrderDto) {
     if (isEmpty(body.productStores)) {
