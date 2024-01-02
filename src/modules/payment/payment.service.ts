@@ -42,10 +42,7 @@ export class PaymentService {
     var signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
     VNP_PARAMS['vnp_SecureHash'] = signed;
     VNP_URL += '?' + querystring.stringify(VNP_PARAMS, { encode: false });
-    return {
-      status: 'OK',
-      VNP_URL,
-    };
+    return VNP_URL;
   }
 
   sortObject(obj) {

@@ -211,6 +211,7 @@ model Order {
   voucherId       String?        @map("voucher_id")
   voucher         Voucher?       @relation(fields: [voucherId], references: [id])
   metadata        Json?          @map("metadata") @db.Json
+  paymentUrl      String?        @db.Text() @map("payment_url")
   orderRequest    OrderRequest[]
   orderDetails    OrderDetail[]
   bills           Bill[]

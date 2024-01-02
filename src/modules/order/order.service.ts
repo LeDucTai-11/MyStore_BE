@@ -244,17 +244,25 @@ export class OrderService {
         });
       }
     });
-    let urlPayment = null;
+    let paymentUrl = null;
     if (body.paymentMethod === PaymentMethod.BANKING) {
-      urlPayment = this.paymentService.createUrlPayment(
+      paymentUrl = this.paymentService.createUrlPayment(
         req,
         newOrder.id,
         totalOrderPrices,
       );
+      await this.prismaService.order.update({
+        where: {
+          id: newOrder.id,
+        },
+        data: {
+          paymentUrl: paymentUrl,
+        }
+      })
     }
     return {
       ...newOrder,
-      urlPayment: urlPayment ? urlPayment : undefined,
+      paymentUrl,
     };
   }
 
@@ -292,6 +300,7 @@ export class OrderService {
           },
         },
         orderStatusId: true,
+        paymentUrl: true,
         paymentMethod: true,
         orderDetails: true,
         metadata: true,
@@ -397,6 +406,7 @@ export class OrderService {
         },
         orderStatusId: true,
         paymentMethod: true,
+        paymentUrl: true,
         orderDetails: true,
         metadata: true,
         createdAt: true,
