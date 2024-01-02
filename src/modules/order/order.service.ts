@@ -443,10 +443,11 @@ export class OrderService {
         id: orderId,
         createdBy: req.user.id,
         orderStatusId: OrderStatus.PENDING_PAYMENT,
+        total: Number(body.amount),
       },
     });
     if (!foundOrder) {
-      throw new NotFoundException('Order not found with ID:' + orderId);
+      throw new NotFoundException('Order not found or invalid');
     }
     return this.prismaService.$transaction(async (tx) => {
       // Save a record payment
