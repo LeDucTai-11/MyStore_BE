@@ -19,7 +19,7 @@ export class PaymentService {
       req.connection.remoteAddress ||
       req.socket.remoteAddress ||
       req.connection.socket.remoteAddress;
-    const domain = `${req.protocol}://${req.get('host')}`;
+    const domain = req.headers['origin'] ?? `${req.protocol}://${req.get('host')}`;
 
     VNP_PARAMS['vnp_Version'] = '2.1.0';
     VNP_PARAMS['vnp_Command'] = 'pay';
