@@ -8,6 +8,8 @@ import { CategoryService } from '../category/category.service';
 import { ExportFileService } from '../export-file/export-file.service';
 import { UsersService } from '../users/users.service';
 import { PaymentService } from '../payment/payment.service';
+import { OrderRequestService } from '../order-request/order-request.service';
+import { MailService } from '../mail/mail.service';
 
 @Module({
   controllers: [OrderController],
@@ -19,7 +21,9 @@ import { PaymentService } from '../payment/payment.service';
     CategoryService,
     ExportFileService,
     UsersService,
-    PaymentService
+    PaymentService,
+    OrderRequestService,
+    MailService
   ],
 })
 export class OrderModule {}

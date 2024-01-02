@@ -23,6 +23,7 @@ import { OrderRequestModule } from './modules/order-request/order-request.module
 import { BillModule } from './modules/bill/bill.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { PaymentModule } from './modules/payment/payment.module';
     BillModule,
     StaffModule,
     PaymentModule,
+    ScheduleModule.forRoot()
   ],
   controllers: [AppController],
   providers: [AppService],
