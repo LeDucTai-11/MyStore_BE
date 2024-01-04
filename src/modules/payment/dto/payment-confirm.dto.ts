@@ -15,4 +15,7 @@ export class PaymentConfirmDto {
 
   @IsNotEmpty()
   orderInfo: string;
+
+  @IsNotEmpty()
+  vnpParam: any;
 }

@@ -24,10 +24,12 @@ import { PaymentConfirmDto } from '../payment/dto/payment-confirm.dto';
 import { Cron } from '@nestjs/schedule';
 import { OrderRequestService } from '../order-request/order-request.service';
 import { logger } from 'src/logger';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class OrderService {
   constructor(
+    private readonly configService: ConfigService,
     private readonly prismaService: PrismaService,
     private readonly cartService: CartService,
     private readonly userService: UsersService,
@@ -246,10 +248,17 @@ export class OrderService {
     });
     let paymentUrl = null;
     if (body.paymentMethod === PaymentMethod.BANKING) {
+      let discountValue = 0;
+      if (foundVoucher) {
+        discountValue =
+          foundVoucher.type === VoucherType.FIXED
+            ? foundVoucher.discountValue
+            : (totalOrderPrices * foundVoucher.discountValue) / 100;
+      }
       paymentUrl = this.paymentService.createUrlPayment(
         req,
         newOrder.id,
-        totalOrderPrices,
+        totalOrderPrices + (body.shippingFee || 0) - discountValue,
       );
       await this.prismaService.order.update({
         where: {
@@ -257,8 +266,8 @@ export class OrderService {
         },
         data: {
           paymentUrl: paymentUrl,
-        }
-      })
+        },
+      });
     }
     return {
       ...newOrder,
@@ -448,23 +457,32 @@ export class OrderService {
   }
 
   async paymentConfirm(req: any, orderId: string, body: PaymentConfirmDto) {
-    const foundOrder = await this.prismaService.order.findFirst({
-      where: {
-        id: orderId,
-        createdBy: req.user.id,
-        orderStatusId: OrderStatus.PENDING_PAYMENT,
-        total: Number(body.amount),
-      },
-    });
-    if (!foundOrder) {
-      throw new NotFoundException('Order not found or invalid');
+    if (orderId !== body.vnpParam['vnp_TxnRef']) {
+      throw new BadRequestException('The VNPAY information is invalid.');
     }
+    const respConfirmPayment = await this.paymentService.queryPayment(
+      req,
+      body.vnpParam,
+    );
+    console.log({ respConfirmPayment });
+
+    if (
+      orderId !== body.vnpParam['vnp_TxnRef'] ||
+      respConfirmPayment['vnp_ResponseCode'] !== '00'
+    ) {
+      throw new BadRequestException('The VNPAY information is invalid.');
+    }
+    const foundOrder = await this.findById(orderId);
+    if (foundOrder.total !== body.amount) {
+      throw new BadRequestException('The price is false !');
+    }
+    const { vnpParam, ...bodyUpdate } = body;
     return this.prismaService.$transaction(async (tx) => {
       // Save a record payment
       await tx.payment.create({
         data: {
           orderId,
-          ...body,
+          ...bodyUpdate,
         },
       });
 
