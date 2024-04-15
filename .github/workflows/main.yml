@@ -15,14 +15,14 @@ jobs:
       - name: Login to Azure Container Registry
         uses: azure/docker-login@v1
         with:
-          login-server: maltstore.azurecr.io
+          login-server: devstore.azurecr.io
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: maltstore.azurecr.io/malt-store:latest
+          tags: devstore.azurecr.io/dev-store:latest
       - name: Deploy on remote server
         uses: appleboy/ssh-action@v1.0.0
         with:
