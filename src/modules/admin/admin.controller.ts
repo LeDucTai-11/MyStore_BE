@@ -100,12 +100,24 @@ export class AdminController {
   @Post('/cashiers')
   @UseGuards(RoleGuard(Role.Admin))
   createCashier(@Body() body: CreateUserDTO) {
-    return this.userService.createUser(body, false);
+    return this.userService.createUser(body, Role.Staff);
   }
 
   @Delete('/cashiers/:id')
   @UseGuards(RoleGuard(Role.Admin))
   deleteStaff(@Param('id') id: string) {
+    return this.userService.deleteUser(id);
+  }
+
+  @Post('/shipper')
+  @UseGuards(RoleGuard(Role.Admin))
+  createShipper(@Body() body: CreateUserDTO) {
+    return this.userService.createUser(body, Role.Shipper);
+  }
+
+  @Delete('/shipper/:id')
+  @UseGuards(RoleGuard(Role.Admin))
+  deleteShipper(@Param('id') id: string) {
     return this.userService.deleteUser(id);
   }
 

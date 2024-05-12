@@ -6,7 +6,8 @@ async function main() {
         data: [
             { name: "User" },
             { name: "Cashier" },
-            { name: "Admin" }
+            { name: "Admin" },
+            { name: "Shipper" }
         ],
         skipDuplicates: true,
     });

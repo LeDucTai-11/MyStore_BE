@@ -235,12 +235,12 @@ export class UsersService {
         id,
       },
       data: {
-        deletedAt: new Date()
-      }
+        deletedAt: new Date(),
+      },
     });
   }
 
-  async createUser(createUserDTO: CreateUserDTO, isUser = true) {
+  async createUser(createUserDTO: CreateUserDTO, roleId = null) {
     if (
       (await this.findByEmail(createUserDTO.email)) ||
       (await this.findByUserName(createUserDTO.username))
@@ -256,7 +256,7 @@ export class UsersService {
         ...createUserDTO,
         userRoles: {
           create: {
-            roleId: isUser ? Role.User : Role.Staff,
+            roleId: roleId === null ? Role.User : Number(roleId),
           },
         },
         userCart: {
