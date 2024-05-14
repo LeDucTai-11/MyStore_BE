@@ -93,6 +93,8 @@ export class StoreService {
       select: {
         id: true,
         address: true,
+        longitude: true,
+        latitude: true,
         hotline: true,
         createdAt: true,
         updatedAt: true,

@@ -92,6 +92,8 @@ model Store {
   id            String         @id @default(uuid())
   address       String?
   hotline       String?
+  longitude     String?
+  latitude      String?
   productStores ProductStore[]
   createdAt     DateTime       @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
   updatedAt     DateTime?      @map("updated_at") @db.Timestamp()
