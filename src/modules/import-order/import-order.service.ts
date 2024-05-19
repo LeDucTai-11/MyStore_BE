@@ -5,12 +5,14 @@ import { addDays } from 'date-fns';
 import { FilterImportOderDto } from './dto/filter-import-order.dto';
 import { Pagination, getOrderBy } from 'src/core/utils';
 import { StoreService } from '../store/store.service';
+import RedisService from 'src/redis/redis.service';
 
 @Injectable()
 export class ImportOrderService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly storeService: StoreService,
+    private readonly redisService: RedisService,
   ) {}
 
   async createImportOrder(body: CreateImportOrderDTO) {
@@ -89,6 +91,11 @@ export class ImportOrderService {
               updatedAt: new Date(),
             },
           });
+          const oderedQuantityKey = `ordered-${productStore.id}`;
+          const getKey = await this.redisService.exists(oderedQuantityKey);
+          if (getKey) {
+            await this.redisService.del(oderedQuantityKey);
+          }
         }),
       );
     });
@@ -125,17 +132,24 @@ export class ImportOrderService {
       this.prismaService.importOrder.findMany(query),
     ]);
     const promisesImportOrders = importOrders.map(async (ip) => {
-      const storeID = ip["importOderDetails"][0].productStore.storeId;
-      if(storeId && storeId !== storeID) return null;
-      const foundStore = await this.storeService.findByID(storeID); 
+      const storeID = ip['importOderDetails'][0].productStore.storeId;
+      if (storeId && storeId !== storeID) return null;
+      const foundStore = await this.storeService.findByID(storeID);
       return {
         ...ip,
         importOderDetails: undefined,
-        storeName: foundStore.address
+        storeName: foundStore.address,
       };
     });
-    importOrders = (await Promise.all(promisesImportOrders)).filter((x) => x !== null);
-    return Pagination.of(take, skip, importOrders.length, importOrders.splice(skip, skip + take));
+    importOrders = (await Promise.all(promisesImportOrders)).filter(
+      (x) => x !== null,
+    );
+    return Pagination.of(
+      take,
+      skip,
+      importOrders.length,
+      importOrders.splice(skip, skip + take),
+    );
   }
 
   async findByID(importOrderID: string) {
@@ -154,29 +168,31 @@ export class ImportOrderService {
             amount: true,
             importPrice: true,
             createdAt: true,
-          }
+          },
         },
-        createdAt: true
-      }
+        createdAt: true,
+      },
     });
-    if(!foundImportOrder) {
+    if (!foundImportOrder) {
       throw new NotFoundException('The Import Order not found');
     }
 
-    const importOderDetails = foundImportOrder.importOderDetails.map(async (x) => {
-      const productStore = await this.prismaService.productStore.findFirst({
-        where: {
-          id: x.productStoreId,
-        },
-        select: {
-          product: true,
-        }
-      })
-      return {
-        ...x,
-        productName: productStore.product.name,
-      }
-    });
+    const importOderDetails = foundImportOrder.importOderDetails.map(
+      async (x) => {
+        const productStore = await this.prismaService.productStore.findFirst({
+          where: {
+            id: x.productStoreId,
+          },
+          select: {
+            product: true,
+          },
+        });
+        return {
+          ...x,
+          productName: productStore.product.name,
+        };
+      },
+    );
     foundImportOrder.importOderDetails = await Promise.all(importOderDetails);
     return foundImportOrder;
   }

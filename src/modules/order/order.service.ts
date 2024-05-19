@@ -25,6 +25,7 @@ import { Cron } from '@nestjs/schedule';
 import { OrderRequestService } from '../order-request/order-request.service';
 import { logger } from 'src/logger';
 import { ConfigService } from '@nestjs/config';
+import RedisService from 'src/redis/redis.service';
 
 @Injectable()
 export class OrderService {
@@ -35,6 +36,7 @@ export class OrderService {
     private readonly userService: UsersService,
     private readonly paymentService: PaymentService,
     private readonly orderRequestService: OrderRequestService,
+    private readonly redisService: RedisService,
   ) {}
 
   @Cron('0 */30 * * * *')
@@ -85,11 +87,29 @@ export class OrderService {
     }
 
     // Step: Check amount of product Stores in db
-    const isInStock = body.productStores.every((x) => {
-      const foundProduct = productStores.find((p) => p.id === x.productStoreId);
-      return foundProduct.amount >= x.quantity;
-    });
-    if (!isInStock) {
+    const isInStock = await Promise.all(
+      body.productStores.map(async (x) => {
+        const foundProduct = productStores.find(
+          (p) => p.id === x.productStoreId,
+        );
+        if (!foundProduct) {
+          return false;
+        }
+        const oderedQuantityKey = `ordered-${foundProduct.id}`;
+        const getKey = await this.redisService.exists(oderedQuantityKey);
+        if (!getKey) {
+          await this.redisService.setnx(oderedQuantityKey, 0);
+        }
+        let oderedQuantity = Number(await this.redisService.get(oderedQuantityKey));
+        oderedQuantity = await this.redisService.incrby(
+          oderedQuantityKey,
+          x.quantity,
+        );
+        return oderedQuantity <= foundProduct.amount
+      }),
+    );
+
+    if (isInStock.includes(false)) {
       throw new BadRequestException('One or more productStores out of stock');
     }
 
@@ -124,155 +144,161 @@ export class OrderService {
     }
 
     let newOrder = null;
-    await this.prismaService.$transaction(async (tx) => {
-      //   1. Create Order
-      const jsonMetadata = {
-        Information: body.contact as object,
-      } as Prisma.JsonObject;
-      newOrder = await tx.order.create({
-        data: {
-          total: totalOrderPrices,
-          shipping: body.shippingFee || 0,
-          address: body.contact.address,
-          createdBy: req.user.id,
-          orderStatusId:
-            body.paymentMethod === PaymentMethod.CASH_ON_DELIVERY
-              ? OrderStatus.PENDING_CONFIRM
-              : OrderStatus.PENDING_PAYMENT,
-          paymentMethod: body.paymentMethod,
-          voucherId: body.voucherId || null,
-          metadata: jsonMetadata,
-        },
-      });
-
-      //   Create Order Details
-      await Promise.all(
-        orderPrices.map(async (op) => {
-          await tx.orderDetail.create({
-            data: {
-              productStoreId: op.productStoreId,
-              quantity: op.quantity,
-              orderPrice: op.productPrice,
-              orderId: newOrder.id,
-            },
-          });
-          const foundProductStore = await tx.productStore.findFirst({
-            where: {
-              id: op.productStoreId,
-            },
-            select: {
-              id: true,
-              amount: true,
-              product: true,
-            },
-          });
-          await tx.productStore.update({
-            where: {
-              id: foundProductStore.id,
-            },
-            data: {
-              amount: foundProductStore.amount - op.quantity,
-              updatedAt: new Date(),
-            },
-          });
-          await tx.product.update({
-            where: {
-              id: foundProductStore.product.id,
-            },
-            data: {
-              amount: foundProductStore.product.amount - op.quantity,
-              updatedAt: new Date(),
-            },
-          });
-        }),
-      );
-
-      // Step: Add user to voucher's metadata
-      if (foundVoucher) {
-        await tx.voucher.update({
-          where: {
-            id: foundVoucher.id,
-          },
+    try {
+      await this.prismaService.$transaction(async (tx) => {
+        //   1. Create Order
+        const jsonMetadata = {
+          Information: body.contact as object,
+        } as Prisma.JsonObject;
+        newOrder = await tx.order.create({
           data: {
-            quantity: foundVoucher.quantity - 1,
-            metadata: {
-              ...foundVoucher.metadata,
-              users: [
-                ...(foundVoucher.metadata?.users || []),
-                newOrder.createdBy,
-              ],
-            },
-            updatedAt: new Date(),
+            total: totalOrderPrices,
+            shipping: body.shippingFee || 0,
+            address: body.contact.address,
+            createdBy: req.user.id,
+            orderStatusId:
+              body.paymentMethod === PaymentMethod.CASH_ON_DELIVERY
+                ? OrderStatus.PENDING_CONFIRM
+                : OrderStatus.PENDING_PAYMENT,
+            paymentMethod: body.paymentMethod,
+            voucherId: body.voucherId || null,
+            metadata: jsonMetadata,
           },
         });
-      }
 
-      // Step: Check isUser
-      const isUser = (await this.userService.getRolesByReq(req)).find(
-        (x) => x.roleId === Role.User,
-      );
-      // Create Order Request with Order ID
-      if (isUser) {
-        if (body.paymentMethod === PaymentMethod.CASH_ON_DELIVERY) {
-          await tx.orderRequest.create({
+        //   Create Order Details
+        await Promise.all(
+          orderPrices.map(async (op) => {
+            await tx.orderDetail.create({
+              data: {
+                productStoreId: op.productStoreId,
+                quantity: op.quantity,
+                orderPrice: op.productPrice,
+                orderId: newOrder.id,
+              },
+            });
+            const foundProductStore = await tx.productStore.findFirst({
+              where: {
+                id: op.productStoreId,
+              },
+              select: {
+                id: true,
+                amount: true,
+                product: true,
+              },
+            });
+            await tx.productStore.update({
+              where: {
+                id: foundProductStore.id,
+              },
+              data: {
+                amount: foundProductStore.amount - op.quantity,
+                updatedAt: new Date(),
+              },
+            });
+            await tx.product.update({
+              where: {
+                id: foundProductStore.product.id,
+              },
+              data: {
+                amount: foundProductStore.product.amount - op.quantity,
+                updatedAt: new Date(),
+              },
+            });
+          }),
+        );
+
+        // Step: Add user to voucher's metadata
+        if (foundVoucher) {
+          await tx.voucher.update({
+            where: {
+              id: foundVoucher.id,
+            },
             data: {
-              createdBy: req.user.id,
-              typeOfRequest: OrderRequesType.CREATE,
-              requestStatusId: RequestStatus.Pending,
-              orderId: newOrder.id,
+              quantity: foundVoucher.quantity - 1,
+              metadata: {
+                ...foundVoucher.metadata,
+                users: [
+                  ...(foundVoucher.metadata?.users || []),
+                  newOrder.createdBy,
+                ],
+              },
+              updatedAt: new Date(),
             },
           });
         }
 
-        // Clear Cart
-        await this.cartService.clearCart(req);
-      } else {
-        await tx.order.update({
+        // Step: Check isUser
+        const isUser = (await this.userService.getRolesByReq(req)).find(
+          (x) => x.roleId === Role.User,
+        );
+        // Create Order Request with Order ID
+        if (isUser) {
+          if (body.paymentMethod === PaymentMethod.CASH_ON_DELIVERY) {
+            await tx.orderRequest.create({
+              data: {
+                createdBy: req.user.id,
+                typeOfRequest: OrderRequesType.CREATE,
+                requestStatusId: RequestStatus.Pending,
+                orderId: newOrder.id,
+              },
+            });
+          }
+
+          // Clear Cart
+          await this.cartService.clearCart(req);
+        } else {
+          await tx.order.update({
+            where: {
+              id: newOrder.id,
+            },
+            data: {
+              orderStatusId: OrderStatus.CONFIRMED,
+              updatedAt: new Date(),
+            },
+          });
+
+          // Step: Create Bill
+          await tx.bill.create({
+            data: {
+              orderId: newOrder.id,
+              createdBy: req.user.id,
+            },
+          });
+        }
+      });
+      let paymentUrl = null;
+      if (body.paymentMethod === PaymentMethod.BANKING) {
+        let discountValue = 0;
+        if (foundVoucher) {
+          discountValue =
+            foundVoucher.type === VoucherType.FIXED
+              ? foundVoucher.discountValue
+              : (totalOrderPrices * foundVoucher.discountValue) / 100;
+        }
+        paymentUrl = this.paymentService.createUrlPayment(
+          req,
+          newOrder.id,
+          totalOrderPrices + (body.shippingFee || 0) - discountValue,
+        );
+        await this.prismaService.order.update({
           where: {
             id: newOrder.id,
           },
           data: {
-            orderStatusId: OrderStatus.CONFIRMED,
-            updatedAt: new Date(),
-          },
-        });
-
-        // Step: Create Bill
-        await tx.bill.create({
-          data: {
-            orderId: newOrder.id,
-            createdBy: req.user.id,
+            paymentUrl: paymentUrl,
           },
         });
       }
-    });
-    let paymentUrl = null;
-    if (body.paymentMethod === PaymentMethod.BANKING) {
-      let discountValue = 0;
-      if (foundVoucher) {
-        discountValue =
-          foundVoucher.type === VoucherType.FIXED
-            ? foundVoucher.discountValue
-            : (totalOrderPrices * foundVoucher.discountValue) / 100;
-      }
-      paymentUrl = this.paymentService.createUrlPayment(
-        req,
-        newOrder.id,
-        totalOrderPrices + (body.shippingFee || 0) - discountValue,
-      );
-      await this.prismaService.order.update({
-        where: {
-          id: newOrder.id,
-        },
-        data: {
-          paymentUrl: paymentUrl,
-        },
+      return {
+        ...newOrder,
+        paymentUrl,
+      };
+    } catch (err) {
+      logger.error('Error creating Order', {
+        detail: err.message,
       });
     }
-    return {
-      ...newOrder,
-      paymentUrl,
-    };
   }
 
   async findAll(queryData: FilterOrderDto, req = null) {

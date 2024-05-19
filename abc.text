@@ -1,0 +1,22 @@
+async order() {
+    const soLuongTonKho = 10;
+const soLuongMua = 1;
+const keyName = 'iphone13';
+const getKey = await exists(keyName);
+if(!getKey) {
+    await setnx(keyName,0);
+}
+let soluongBanRa = await get(keyName); 
+soluongBanRa = await incryby(keyName,soLuongMua);
+if(soluongBanRa > soLuongTonKho) {
+    console.log("HET HANG");
+    return {
+        status: "ERROR",
+        msg: "HET HANG"
+    }
+}
+return {
+    status: "SUCCESS",
+    msg: "ORDER SUCCESS"
+}
+}

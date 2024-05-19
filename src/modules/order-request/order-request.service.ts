@@ -339,6 +339,7 @@ export class OrderRequestService {
         const updatedOrder = await this.flowCancelOrder(order);
         return {
           status: true,
+          msg: 'Order request has been approved',
           data: updatedOrder,
         };
       });
@@ -388,6 +389,7 @@ export class OrderRequestService {
         await this.mailService.sendOrderDetails(foundUser.email, order);
         return {
           status: true,
+          msg: 'Order request has been approved',
           data: newBill,
         };
       });
