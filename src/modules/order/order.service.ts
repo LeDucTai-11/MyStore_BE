@@ -25,6 +25,7 @@ import { Cron } from '@nestjs/schedule';
 import { OrderRequestService } from '../order-request/order-request.service';
 import { logger } from 'src/logger';
 import { ConfigService } from '@nestjs/config';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class OrderService {
@@ -35,6 +36,7 @@ export class OrderService {
     private readonly userService: UsersService,
     private readonly paymentService: PaymentService,
     private readonly orderRequestService: OrderRequestService,
+    private readonly mailService: MailService,
   ) {}
 
   @Cron('0 */30 * * * *')
@@ -222,10 +224,9 @@ export class OrderService {
               orderId: newOrder.id,
             },
           });
+          // Clear Cart
+          await this.cartService.clearCart(req);
         }
-
-        // Clear Cart
-        await this.cartService.clearCart(req);
       } else {
         await tx.order.update({
           where: {
@@ -396,6 +397,7 @@ export class OrderService {
         id: true,
         total: true,
         shipping: true,
+        createdBy: true,
         user: {
           select: {
             id: true,
@@ -496,6 +498,13 @@ export class OrderService {
           updatedAt: new Date(),
         },
       });
+
+      // Clear Cart
+      await this.cartService.clearCart(req);
+
+      // Send information of Order to mail
+      const foundUser = await this.userService.findByID(foundOrder.createdBy);
+      await this.mailService.sendOrderDetails(foundUser.email, foundOrder);
 
       // Create bill
       return tx.bill.create({
