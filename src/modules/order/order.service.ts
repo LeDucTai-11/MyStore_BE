@@ -466,15 +466,42 @@ export class OrderService {
       req,
       body.vnpParam,
     );
-    console.log({ respConfirmPayment });
-
+    
     if (
       orderId !== body.vnpParam['vnp_TxnRef'] ||
       respConfirmPayment['vnp_ResponseCode'] !== '00'
     ) {
       throw new BadRequestException('The VNPAY information is invalid.');
     }
-    const foundOrder = await this.findById(orderId);
+    const foundOrder = await this.prismaService.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      select: {
+        id: true,
+        total: true,
+        shipping: true,
+        paymentMethod: true,
+        voucherId: true,
+        voucher: true,
+        metadata: true,
+        createdBy: true,
+        orderDetails: {
+          select: {
+            id: true,
+            quantity: true,
+            productStore: {
+              select: {
+                id: true,
+                amount: true,
+                productId: true,
+                product: true,
+              },
+            },
+          },
+        },
+      },
+    });
     if (foundOrder.total !== body.amount) {
       throw new BadRequestException('The price is false !');
     }
