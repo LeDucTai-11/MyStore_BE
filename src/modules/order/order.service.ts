@@ -502,7 +502,18 @@ export class OrderService {
         },
       },
     });
-    if (foundOrder.total !== body.amount) {
+    if (!foundOrder) {
+      throw new NotFoundException('Order not found');
+    }
+    let discountValue = 0;
+    if (foundOrder['voucher']) {
+      discountValue =
+        foundOrder['voucher'].type === VoucherType.FIXED
+          ? foundOrder['voucher'].discountValue
+          : (foundOrder.total * foundOrder['voucher'].discountValue) / 100;
+    }
+    const totalPrice = foundOrder.total + foundOrder.shipping - discountValue;
+    if (totalPrice !== body.amount) {
       throw new BadRequestException('The price is false !');
     }
     const { vnpParam, ...bodyUpdate } = body;
