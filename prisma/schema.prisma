@@ -61,7 +61,7 @@ model Category {
   id          String    @id @default(uuid())
   name        String    @unique
   image       String?
-  description String?
+  description String?   @db.Text()
   products    Product[]
   createdAt   DateTime  @default(dbgenerated("now()")) @map("created_at") @db.Timestamp()
   updatedAt   DateTime? @map("updated_at") @db.Timestamp()
@@ -74,7 +74,7 @@ model Product {
   id            String         @id @default(uuid())
   name          String         @unique
   image         String?
-  description   String?
+  description   String?        @db.Text()
   amount        Int            @default(0)
   price         Int
   categoryId    String         @map("category_id")
