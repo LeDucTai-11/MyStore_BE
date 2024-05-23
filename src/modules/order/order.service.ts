@@ -26,6 +26,7 @@ import { OrderRequestService } from '../order-request/order-request.service';
 import { logger } from 'src/logger';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from '../mail/mail.service';
+import { ShippingService } from '../shipping/shipping.service';
 
 @Injectable()
 export class OrderService {
@@ -37,6 +38,7 @@ export class OrderService {
     private readonly paymentService: PaymentService,
     private readonly orderRequestService: OrderRequestService,
     private readonly mailService: MailService,
+    private readonly shippingService: ShippingService,
   ) {}
 
   @Cron('0 */30 * * * *')
@@ -496,6 +498,7 @@ export class OrderService {
                 amount: true,
                 productId: true,
                 product: true,
+                storeId: true,
               },
             },
           },
@@ -543,6 +546,20 @@ export class OrderService {
       // Send information of Order to mail
       const foundUser = await this.userService.findByID(foundOrder.createdBy);
       await this.mailService.sendOrderDetails(foundUser.email, foundOrder);
+
+      // Create shipping 
+      const generateShipper = await this.shippingService.generateShipper([]);
+      await tx.shipping.create({
+        data: {
+          shipperId: generateShipper.id,
+          storeId: foundOrder.orderDetails[0].productStore.storeId,
+          requestStatusId: RequestStatus.Pending,
+          orderId: foundOrder.id,
+          metadata: {
+            shippers: [generateShipper.id],
+          }
+        }
+      });
 
       // Create bill
       return tx.bill.create({

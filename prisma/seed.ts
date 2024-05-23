@@ -25,9 +25,10 @@ async function main() {
         data: [
             {name:'PENDING_CONFIRM'},
             {name: "CONFIRMED"},
-            {name: 'COMPLETED'},
             {name: 'PENDING_PAYMENT'},
             {name: 'PAYMENT_CONFIRMED'},
+            {name: 'DELIVERING'},
+            {name: 'COMPLETED'},
             {name: 'CANCELED'}
         ]
     })

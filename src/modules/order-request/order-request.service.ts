@@ -1,18 +1,10 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CreateModifyOrderRequestDto,
   UpdateOrderRequestStatusDto,
 } from './dto/update-order-request.dto';
-import {
-  OrderRequesType,
-  OrderStatus,
-  PaymentMethod,
-} from 'src/core/enum/orderRequest.enum';
+import { OrderRequesType, OrderStatus, PaymentMethod } from 'src/core/enum/orderRequest.enum';
 import { RequestStatus } from 'src/core/enum/requestStatus.enum';
 import { MailService } from '../mail/mail.service';
 import { UsersService } from '../users/users.service';
@@ -20,6 +12,7 @@ import { FilterOrderRequestDto } from './dto/filter-order-request.dto';
 import { Pagination, forceDataToArray, getOrderBy } from 'src/core/utils';
 import { isEmpty } from 'lodash';
 import { VoucherType } from 'src/core/enum/voucher.enum';
+import { ShippingService } from '../shipping/shipping.service';
 
 @Injectable()
 export class OrderRequestService {
@@ -27,11 +20,11 @@ export class OrderRequestService {
     private readonly prismaService: PrismaService,
     private readonly mailService: MailService,
     private readonly userService: UsersService,
+    private readonly shippingService: ShippingService,
   ) {}
 
   async findAll(queryData: FilterOrderRequestDto, req = null) {
-    const { search, take, skip, requestStatusId, paymentMethod, order } =
-      queryData;
+    const { search, take, skip, requestStatusId, paymentMethod, order } = queryData;
     const query: any = {
       where: {
         requestStatusId: requestStatusId ?? undefined,
@@ -146,12 +139,7 @@ export class OrderRequestService {
         },
       };
     });
-    return Pagination.of(
-      take,
-      skip,
-      total,
-      await Promise.all(orderRequestPromises),
-    );
+    return Pagination.of(take, skip, total, await Promise.all(orderRequestPromises));
   }
 
   async findById(id: string) {
@@ -235,10 +223,7 @@ export class OrderRequestService {
         voucher: foundVoucher,
         subTotal: foundOrderRequest.order.total,
         discountValue,
-        total:
-          foundOrderRequest.order.total +
-          foundOrderRequest.order.shipping -
-          discountValue,
+        total: foundOrderRequest.order.total + foundOrderRequest.order.shipping - discountValue,
         orderDetails,
       },
     };
@@ -283,6 +268,7 @@ export class OrderRequestService {
                 amount: true,
                 productId: true,
                 product: true,
+                storeId: true,
               },
             },
           },
@@ -293,18 +279,9 @@ export class OrderRequestService {
     const requestStatusId: RequestStatus = updateDto.requestStatusId;
     return this.prismaService.$transaction(async (tx) => {
       if (orderRequest.typeOfRequest === OrderRequesType.CREATE) {
-        respData = await this.modifyOrderReqCreateOrder(
-          orderRequest,
-          order,
-          requestStatusId,
-          req,
-        );
+        respData = await this.modifyOrderReqCreateOrder(orderRequest, order, requestStatusId, req);
       } else if (orderRequest.typeOfRequest === OrderRequesType.CANCEL) {
-        respData = await this.modifyOrderReqCancelOrder(
-          orderRequest,
-          order,
-          requestStatusId,
-        );
+        respData = await this.modifyOrderReqCancelOrder(orderRequest, order, requestStatusId);
       }
 
       // Update booking request status
@@ -315,25 +292,17 @@ export class OrderRequestService {
         data: {
           requestStatusId,
           updatedAt: new Date(),
-          approvedAt:
-            requestStatusId === RequestStatus.Approved ? new Date() : null,
-          approvedBy:
-            requestStatusId === RequestStatus.Approved ? req.user?.id : null,
-          canceledAt:
-            requestStatusId === RequestStatus.Rejected ? new Date() : null,
-          canceledBy:
-            requestStatusId === RequestStatus.Rejected ? req.user?.id : null,
+          approvedAt: requestStatusId === RequestStatus.Approved ? new Date() : null,
+          approvedBy: requestStatusId === RequestStatus.Approved ? req.user?.id : null,
+          canceledAt: requestStatusId === RequestStatus.Rejected ? new Date() : null,
+          canceledBy: requestStatusId === RequestStatus.Rejected ? req.user?.id : null,
         },
       });
       return respData;
     });
   }
 
-  async modifyOrderReqCancelOrder(
-    orderRequest: any,
-    order: any,
-    requestStatusId: RequestStatus,
-  ) {
+  async modifyOrderReqCancelOrder(orderRequest: any, order: any, requestStatusId: RequestStatus) {
     if (requestStatusId === RequestStatus.Approved) {
       return this.prismaService.$transaction(async (tx) => {
         const updatedOrder = await this.flowCancelOrder(order);
@@ -375,6 +344,20 @@ export class OrderRequestService {
           },
         });
 
+        //  Create shipping
+        const generateShipper = await this.shippingService.generateShipper([]);
+        await tx.shipping.create({
+          data: {
+            shipperId: generateShipper.id,
+            storeId: order.orderDetails[0].productStore.storeId,
+            requestStatusId: RequestStatus.Pending,
+            orderId: order.id,
+            metadata: {
+              shippers: [generateShipper.id],
+            },
+          },
+        });
+
         // Step: Create Bill
         const newBill = await tx.bill.create({
           data: {
@@ -406,9 +389,7 @@ export class OrderRequestService {
               quantity: order.voucher.quantity + 1,
               metadata: {
                 ...order.voucher.metadata,
-                users: (order.voucher.metadata?.users || []).filter(
-                  (x) => x !== order.createdBy,
-                ),
+                users: (order.voucher.metadata?.users || []).filter((x) => x !== order.createdBy),
               },
               updatedAt: new Date(),
             },
@@ -431,17 +412,15 @@ export class OrderRequestService {
   ) {
     if (createModifyBookingRequestDto.requestType === OrderRequesType.CANCEL) {
       // Check list order Request with Status Pending and type Create
-      const foundOrderRequest = await this.prismaService.orderRequest.findFirst(
-        {
-          where: {
-            orderId: createModifyBookingRequestDto.orderId,
-            requestStatusId: RequestStatus.Pending,
-            typeOfRequest: OrderRequesType.CREATE,
-            createdBy: req.user.id,
-            deletedAt: null,
-          },
+      const foundOrderRequest = await this.prismaService.orderRequest.findFirst({
+        where: {
+          orderId: createModifyBookingRequestDto.orderId,
+          requestStatusId: RequestStatus.Pending,
+          typeOfRequest: OrderRequesType.CREATE,
+          createdBy: req.user.id,
+          deletedAt: null,
         },
-      );
+      });
 
       if (foundOrderRequest) {
         return this.prismaService.$transaction(async (tx) => {
@@ -491,16 +470,15 @@ export class OrderRequestService {
       }
 
       // Check request Cancel already exist in db
-      const foundRequestCancel =
-        await this.prismaService.orderRequest.findFirst({
-          where: {
-            orderId: createModifyBookingRequestDto.orderId,
-            requestStatusId: RequestStatus.Pending,
-            typeOfRequest: OrderRequesType.CANCEL,
-            createdBy: req.user.id,
-            deletedAt: null,
-          },
-        });
+      const foundRequestCancel = await this.prismaService.orderRequest.findFirst({
+        where: {
+          orderId: createModifyBookingRequestDto.orderId,
+          requestStatusId: RequestStatus.Pending,
+          typeOfRequest: OrderRequesType.CANCEL,
+          createdBy: req.user.id,
+          deletedAt: null,
+        },
+      });
       if (foundRequestCancel) {
         throw new BadRequestException('You created Cancel Request in the past');
       }

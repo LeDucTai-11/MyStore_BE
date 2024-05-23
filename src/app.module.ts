@@ -24,6 +24,7 @@ import { BillModule } from './modules/bill/bill.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ShippingModule } from './modules/shipping/shipping.module';
 
 @Module({
   imports: [
@@ -50,7 +51,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     BillModule,
     StaffModule,
     PaymentModule,
-    ScheduleModule.forRoot()
+    ScheduleModule.forRoot(),
+    ShippingModule
   ],
   controllers: [AppController],
   providers: [AppService],
