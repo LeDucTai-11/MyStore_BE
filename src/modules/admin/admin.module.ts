@@ -17,6 +17,7 @@ import { CartService } from '../cart/cart.service';
 import { BillService } from '../bill/bill.service';
 import { PaymentService } from '../payment/payment.service';
 import { ShippingService } from '../shipping/shipping.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 @Module({
   controllers: [AdminController],
@@ -37,7 +38,8 @@ import { ShippingService } from '../shipping/shipping.service';
     CartService,
     BillService,
     PaymentService,
-    ShippingService
+    ShippingService,
+    FirebaseService
   ],
 })
 export class AdminModule {}

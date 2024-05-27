@@ -25,6 +25,7 @@ import { StaffModule } from './modules/staff/staff.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ShippingModule } from './modules/shipping/shipping.module';
+import { FirebaseModule } from './firebase/firebase.module';
 
 @Module({
   imports: [
@@ -52,7 +53,8 @@ import { ShippingModule } from './modules/shipping/shipping.module';
     StaffModule,
     PaymentModule,
     ScheduleModule.forRoot(),
-    ShippingModule
+    ShippingModule,
+    FirebaseModule
   ],
   controllers: [AppController],
   providers: [AppService],

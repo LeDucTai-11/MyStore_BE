@@ -11,6 +11,7 @@ import { PaymentService } from '../payment/payment.service';
 import { OrderRequestService } from '../order-request/order-request.service';
 import { MailService } from '../mail/mail.service';
 import { ShippingService } from '../shipping/shipping.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 @Module({
   controllers: [OrderController],
@@ -25,7 +26,8 @@ import { ShippingService } from '../shipping/shipping.service';
     PaymentService,
     OrderRequestService,
     MailService,
-    ShippingService
+    ShippingService,
+    FirebaseService
   ],
 })
 export class OrderModule {}

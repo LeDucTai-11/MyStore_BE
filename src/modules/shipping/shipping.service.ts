@@ -6,10 +6,14 @@ import { RequestStatus } from 'src/core/enum/requestStatus.enum';
 import { OrderStatus } from 'src/core/enum/orderRequest.enum';
 import { get } from 'lodash';
 import { forceDataToArray } from 'src/core/utils';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 @Injectable()
 export class ShippingService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private firebaseService: FirebaseService,
+  ) {}
 
   generateShipper(excludedIds: string[]) {
     return this.prismaService.user.findFirst({
@@ -40,6 +44,9 @@ export class ShippingService {
         requestStatusId: RequestStatus.Pending,
         deletedAt: null,
       },
+      include: {
+        store: true,
+      }
     });
     if (!foundShipping) {
       throw new NotFoundException('The Shipping request not found.');
@@ -95,6 +102,15 @@ export class ShippingService {
           },
         });
 
+        await this.firebaseService.sendDataToFirebase(
+          `delivery/${generateShipper.id}`,
+          {
+            status: 0,
+            storeAddress: foundShipping.store.address,
+            shippingId: foundShipping.id,
+          },
+        );
+
         return {
           status: false,
           data: {
@@ -122,10 +138,10 @@ export class ShippingService {
       where: {
         id: shippingId,
         deletedAt: null,
-        shipperId: req.user.id
-      }
+        shipperId: req.user.id,
+      },
     });
-    if(!foundShipping) {
+    if (!foundShipping) {
       throw new NotFoundException('The shipping request not found');
     }
 
@@ -146,6 +162,6 @@ export class ShippingService {
           msg: 'The order has been shipped successfully',
         },
       };
-    })
+    });
   }
 }

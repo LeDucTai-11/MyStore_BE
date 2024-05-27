@@ -27,6 +27,7 @@ import { logger } from 'src/logger';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from '../mail/mail.service';
 import { ShippingService } from '../shipping/shipping.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 @Injectable()
 export class OrderService {
@@ -39,6 +40,7 @@ export class OrderService {
     private readonly orderRequestService: OrderRequestService,
     private readonly mailService: MailService,
     private readonly shippingService: ShippingService,
+    private readonly firebaseService: FirebaseService,
   ) {}
 
   @Cron('0 */30 * * * *')
@@ -549,7 +551,7 @@ export class OrderService {
 
       // Create shipping 
       const generateShipper = await this.shippingService.generateShipper([]);
-      await tx.shipping.create({
+      const newShipping = await tx.shipping.create({
         data: {
           shipperId: generateShipper.id,
           storeId: foundOrder.orderDetails[0].productStore.storeId,
@@ -558,8 +560,20 @@ export class OrderService {
           metadata: {
             shippers: [generateShipper.id],
           }
+        },
+        include: {
+          store: true,
         }
       });
+
+      await this.firebaseService.sendDataToFirebase(
+        `delivery/${generateShipper.id}`,
+        {
+          status: 0,
+          storeAddress: newShipping.store.address,
+          shippingId: newShipping.id,
+        },
+      );
 
       // Create bill
       return tx.bill.create({
