@@ -402,6 +402,7 @@ export class OrderRequestService {
           {
             status: 0,
             storeAddress: newShipping.store.address,
+            userId: order.createdBy,
             shippingId: newShipping.id,
           },
         );

@@ -571,6 +571,7 @@ export class OrderService {
         {
           status: 0,
           storeAddress: newShipping.store.address,
+          userId: foundOrder.createdBy,
           shippingId: newShipping.id,
         },
       );
