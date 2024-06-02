@@ -347,7 +347,7 @@ export class ProductService {
       JOIN order_detail od ON od.order_id = o.id
       JOIN product_store ps ON od.product_store_id = ps.id
       JOIN product as p ON p.id = ps.productId
-      WHERE ps.deleted_at is null AND o.order_status_id = 2 ${storeQuery} ${validDateQuery}
+      WHERE ps.deleted_at is null AND o.order_status_id = 6 ${storeQuery} ${validDateQuery}
       GROUP BY od.product_store_id
       ORDER BY totalQuantitySold DESC;
   `;

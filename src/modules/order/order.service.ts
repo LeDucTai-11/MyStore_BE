@@ -237,7 +237,7 @@ export class OrderService {
             id: newOrder.id,
           },
           data: {
-            orderStatusId: OrderStatus.CONFIRMED,
+            orderStatusId: OrderStatus.COMPLETED,
             updatedAt: new Date(),
           },
         });
@@ -288,6 +288,15 @@ export class OrderService {
       where: {
         paymentMethod: paymentMethod ?? undefined,
         createdBy: req ? req.user.id : undefined,
+        user: {
+          userRoles: {
+            some: {
+              roleId: {
+                in: [Role.User],
+              },
+            },
+          },
+        },
       },
       take,
       skip,
@@ -470,7 +479,7 @@ export class OrderService {
       req,
       body.vnpParam,
     );
-    
+
     if (
       orderId !== body.vnpParam['vnp_TxnRef'] ||
       respConfirmPayment['vnp_ResponseCode'] !== '00'
@@ -549,7 +558,7 @@ export class OrderService {
       const foundUser = await this.userService.findByID(foundOrder.createdBy);
       await this.mailService.sendOrderDetails(foundUser.email, foundOrder);
 
-      // Create shipping 
+      // Create shipping
       const generateShipper = await this.shippingService.generateShipper([]);
       const newShipping = await tx.shipping.create({
         data: {
@@ -559,11 +568,11 @@ export class OrderService {
           orderId: foundOrder.id,
           metadata: {
             shippers: [generateShipper.id],
-          }
+          },
         },
         include: {
           store: true,
-        }
+        },
       });
 
       await this.firebaseService.sendDataToFirebase(
