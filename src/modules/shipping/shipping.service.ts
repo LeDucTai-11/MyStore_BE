@@ -46,6 +46,7 @@ export class ShippingService {
       },
       include: {
         store: true,
+        order: true,
       }
     });
     if (!foundShipping) {
@@ -107,6 +108,7 @@ export class ShippingService {
           {
             status: 0,
             storeAddress: foundShipping.store.address,
+            userId: foundShipping.order.createdBy,
             shippingId: foundShipping.id,
           },
         );
