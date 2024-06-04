@@ -129,6 +129,9 @@ export class ShippingService {
         shipperId: req.user.id,
         deletedAt: null,
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
       include: {
         order: true,
       },
