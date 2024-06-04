@@ -43,7 +43,7 @@ export class OrderService {
     private readonly firebaseService: FirebaseService,
   ) {}
 
-  @Cron('0 */30 * * * *')
+  @Cron('0 */5 * * * *')
   async handleCron() {
     logger.info('CronJob scheduleQueueCancelOrder start running');
     const needCanceOrders = await this.getOrderNeedCancel();
