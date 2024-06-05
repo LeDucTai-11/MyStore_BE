@@ -26,6 +26,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ShippingModule } from './modules/shipping/shipping.module';
 import { FirebaseModule } from './firebase/firebase.module';
+import { CronJobModule } from './modules/cron-job/cron-job.module';
 
 @Module({
   imports: [
@@ -54,7 +55,8 @@ import { FirebaseModule } from './firebase/firebase.module';
     PaymentModule,
     ScheduleModule.forRoot(),
     ShippingModule,
-    FirebaseModule
+    FirebaseModule,
+    CronJobModule
   ],
   controllers: [AppController],
   providers: [AppService],

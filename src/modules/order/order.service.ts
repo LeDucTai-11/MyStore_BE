@@ -21,10 +21,6 @@ import { Role } from 'src/core/enum/roles.enum';
 import { isEmpty } from 'lodash';
 import { PaymentService } from '../payment/payment.service';
 import { PaymentConfirmDto } from '../payment/dto/payment-confirm.dto';
-import { Cron } from '@nestjs/schedule';
-import { OrderRequestService } from '../order-request/order-request.service';
-import { logger } from 'src/logger';
-import { ConfigService } from '@nestjs/config';
 import { MailService } from '../mail/mail.service';
 import { ShippingService } from '../shipping/shipping.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
@@ -32,41 +28,14 @@ import { FirebaseService } from 'src/firebase/firebase.service';
 @Injectable()
 export class OrderService {
   constructor(
-    private readonly configService: ConfigService,
     private readonly prismaService: PrismaService,
     private readonly cartService: CartService,
     private readonly userService: UsersService,
     private readonly paymentService: PaymentService,
-    private readonly orderRequestService: OrderRequestService,
     private readonly mailService: MailService,
     private readonly shippingService: ShippingService,
     private readonly firebaseService: FirebaseService,
   ) {}
-
-  @Cron('0 */5 * * * *')
-  async handleCron() {
-    logger.info('CronJob scheduleQueueCancelOrder start running');
-    const needCanceOrders = await this.getOrderNeedCancel();
-    if (!Array.isArray(needCanceOrders) || isEmpty(needCanceOrders)) return;
-    const cancelOrderTasks = needCanceOrders.map(async (x) => {
-      try {
-        await this.orderRequestService.flowCancelOrder(x);
-      } catch (error) {
-        logger.error('CronJob Error processing cancel order', {
-          detail: error,
-        });
-      }
-    });
-    Promise.allSettled(cancelOrderTasks)
-      .then(() => {
-        logger.info('CronJob scheduleQueueCancelOrder success');
-      })
-      .catch((error) => {
-        logger.error('CronJob scheduleQueueCancelOrder error', {
-          detail: error,
-        });
-      });
-  }
 
   async createOrder(req: any, body: ConfirmOrderDto) {
     if (isEmpty(body.productStores)) {

@@ -8,7 +8,6 @@ import { CategoryService } from '../category/category.service';
 import { ExportFileService } from '../export-file/export-file.service';
 import { UsersService } from '../users/users.service';
 import { PaymentService } from '../payment/payment.service';
-import { OrderRequestService } from '../order-request/order-request.service';
 import { MailService } from '../mail/mail.service';
 import { ShippingService } from '../shipping/shipping.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
@@ -24,7 +23,6 @@ import { FirebaseService } from 'src/firebase/firebase.service';
     ExportFileService,
     UsersService,
     PaymentService,
-    OrderRequestService,
     MailService,
     ShippingService,
     FirebaseService

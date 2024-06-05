@@ -586,26 +586,29 @@ export class OrderRequestService {
       // Step: Update amount of Product,ProductStores
       await Promise.all(
         order.orderDetails.map(async (od) => {
-          const foundProduct = await tx.product.findFirst({
-            where: {
-              id: od.productStore.productId,
-            },
-          });
-          await tx.productStore.update({
+          const foundProductStore = await tx.productStore.findFirst({
             where: {
               id: od.productStore.id,
             },
+            include: {
+              product: true,
+            }
+          });
+          await tx.productStore.update({
+            where: {
+              id: foundProductStore.id,
+            },
             data: {
-              amount: od.productStore.amount + od.quantity,
+              amount: foundProductStore.amount + od.quantity,
               updatedAt: new Date(),
             },
           });
           await tx.product.update({
             where: {
-              id: foundProduct.id,
+              id: foundProductStore.productId,
             },
             data: {
-              amount: foundProduct.amount + od.quantity,
+              amount: foundProductStore.product.amount + od.quantity,
               updatedAt: new Date(),
             },
           });
