@@ -44,4 +44,9 @@ export class CreateUserDTO {
     @IsNotEmpty()
     phone: string;
 
+    @ApiProperty()
+    @IsString()
+    @IsOptional()
+    storeId?: string;
+
 }

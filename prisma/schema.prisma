@@ -29,6 +29,7 @@ model User {
   address                 String?
   phone                   String?
   gender                  Int?           @db.SmallInt
+  storeId                 String?        @map("store_id")
   avatarUrl               String?        @map("avatar_url")
   passwordResetToken      String?        @map("password_reset_token")
   passwordResetExpiration DateTime?      @map("password_reset_expiration") @db.Timestamp()

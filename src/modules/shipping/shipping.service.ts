@@ -15,12 +15,13 @@ export class ShippingService {
     private firebaseService: FirebaseService,
   ) {}
 
-  generateShipper(excludedIds: string[]) {
+  generateShipper(excludedIds: string[],storeId: string) {
     return this.prismaService.user.findFirst({
       where: {
         id: {
           notIn: excludedIds,
         },
+        storeId,
         userRoles: {
           some: {
             roleId: {
@@ -89,7 +90,7 @@ export class ShippingService {
         const excludedShipperIds = forceDataToArray(
           get(foundShipping, 'metadata.shippers'),
         );
-        const generateShipper = await this.generateShipper(excludedShipperIds);
+        const generateShipper = await this.generateShipper(excludedShipperIds,foundShipping.storeId);
         await tx.shipping.update({
           where: {
             id: foundShipping.id,

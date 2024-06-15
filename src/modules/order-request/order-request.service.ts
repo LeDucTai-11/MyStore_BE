@@ -381,7 +381,7 @@ export class OrderRequestService {
         });
 
         //  Create shipping
-        const generateShipper = await this.shippingService.generateShipper([]);
+        const generateShipper = await this.shippingService.generateShipper([],order.orderDetails[0].productStore.storeId);
         const newShipping = await tx.shipping.create({
           data: {
             shipperId: generateShipper.id,
