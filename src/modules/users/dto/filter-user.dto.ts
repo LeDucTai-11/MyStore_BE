@@ -52,8 +52,15 @@ export class FilterUserDto {
 
     @ApiPropertyOptional({
         description: 'Filter by roles',
-        example: [1, 2, 3],
+        example: [1, 2, 3, 4],
     })
     @IsOptional()
     roles?: number[];
+
+    @ApiPropertyOptional({
+        description: 'Filter by store',
+        example: 'storeId',
+    })
+    @IsOptional()
+    storeId?: string;
 }

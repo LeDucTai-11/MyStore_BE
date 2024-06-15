@@ -56,6 +56,7 @@ export class UsersService {
               ],
             }
           : {}),
+        storeId: queryData.storeId || undefined,
       },
       take,
       skip,
