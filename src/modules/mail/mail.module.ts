@@ -18,7 +18,7 @@ import { ConfigService } from '@nestjs/config';
           },
         },
         defaults: {
-          from: `"Lee Duc Tai Store" <${configService.get('MAIL_FROM')}>`,
+          from: `"The MALT Store" <${configService.get('MAIL_FROM')}>`,
         },
         template: {
           dir: join(__dirname, 'templates'),

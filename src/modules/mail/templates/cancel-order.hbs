@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="x-apple-disable-message-reformatting">
+	<meta http-equiv="x-ua-compatible" content="ie=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+	<meta name="color-scheme" content="light dark">
+	<meta name="supported-color-schemes" content="light dark">
+	<title>The MALT STORE - Từ chối yêu cầu đặt hàng</title>
+	<style>
+	</style>
+</head>
+
+<body style="word-break: break-word; margin: 0; width: 100%; background-color: #f8fafc; padding: 0">
+	<div>
+		<h2 style="justify-content: center;">The MALT STORE: Cảm ơn bạn đã đặt hàng trên website của chúng tôi !</h2>
+        <h2 style="color: red; justify-content: center;">Chúng tôi rất tiếc phải thông báo rằng đơn đặt hàng của bạn không thể được thực hiện </h2>
+        <h2 style="justify-content: center;">Chúng tôi xin lỗi vì sự bất tiện này và hy vọng có thể phục vụ bạn vào lần tới </h2>
+	</div>
+	<div>
+		<h3>Chi tiết đơn hàng bao gồm những thông tin dưới đây: </h3>
+	</div>
+	<div>
+		<h4>&rsaquo; Danh sách sản phẩm</h4>
+		{{#each data.orderDetails}}
+		<ul>
+			<li>Tên sản phẩm <b>{{this.productStore.product.name}}.</b></li>
+			<li>Số lượng: <b>{{this.quantity}}.</b></li>
+			<li>Giá của sản phẩm: <b>{{this.productStore.product.price}}.</b></li>
+		</ul>
+		{{/each}}
+	</div>
+	<div>
+		<h4>&rsaquo; Thông tin đơn hàng</h4>
+		<ul>
+			<li>Họ: <b>{{data.metadata.Information.firstName}}.</b></li>
+			<li>Tên: <b>{{data.metadata.Information.lastName}}.</b></li>
+			<li>Số điện thoại: <b>{{data.metadata.Information.phoneNumber}}.</b></li>
+			<li>Địa chỉ: <b>{{data.metadata.Information.address}}.</b></li>
+			<li>Phương thức thanh toán: <b>{{data.paymentMethod}}.</b></li>
+			<li>Giá trị đơn hàng: <b>{{data.total}}.</b></li>
+			<li>Phí vận chuyển: <b>{{data.shipping}}.</b></li>
+			{{#if data.voucher}}
+				<li>Voucher giảm giá: {{data.voucherValue}}</li>
+			{{/if}}
+			<li>Tổng giá trị đơn hàng: <b>{{data.totalPrices}}.</b></li>
+		</ul>
+	</div>
+</body>
+
+</html>

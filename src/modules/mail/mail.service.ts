@@ -28,8 +28,33 @@ export class MailService {
     }
     await this.mailService.sendMail({
       to: email,
-      subject: 'Send Information Order',
+      subject: 'Xác nhận yêu cầu đặt hàng',
       template: './order-details',
+      context: {
+        data: {
+          ...data,
+          voucherValue: voucherValue ? voucherValue : undefined,
+          totalPrices: voucherValue
+            ? data.total + data.shipping - voucherValue
+            : data.total + data.shipping,
+        },
+      },
+    });
+  }
+
+  async sendCancelOrder(email: string, data: any) {
+    let voucherValue = null;
+    if (data.voucher) {
+      if (data.voucher.type === VoucherType.FIXED) {
+        voucherValue = data.voucher.discountValue;
+      } else if (data.voucher.type === VoucherType.PERCENTAGE) {
+        voucherValue = (data.total * data.voucher.discountValue) / 100;
+      }
+    }
+    await this.mailService.sendMail({
+      to: email,
+      subject: 'Từ chối yêu cầu đặt hàng',
+      template: './cancel-order',
       context: {
         data: {
           ...data,

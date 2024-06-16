@@ -381,7 +381,10 @@ export class OrderRequestService {
         });
 
         //  Create shipping
-        const generateShipper = await this.shippingService.generateShipper([],order.orderDetails[0].productStore.storeId);
+        const generateShipper = await this.shippingService.generateShipper(
+          [],
+          order.orderDetails[0].productStore.storeId,
+        );
         const newShipping = await tx.shipping.create({
           data: {
             shipperId: generateShipper.id,
@@ -446,6 +449,10 @@ export class OrderRequestService {
             },
           });
         }
+
+        // Send cancel order mail
+        const foundUser = await this.userService.findByID(order.createdBy);
+        await this.mailService.sendCancelOrder(foundUser.email, order);
 
         return {
           status: false,
@@ -592,7 +599,7 @@ export class OrderRequestService {
             },
             include: {
               product: true,
-            }
+            },
           });
           await tx.productStore.update({
             where: {
