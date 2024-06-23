@@ -21,6 +21,11 @@ export const forceDataToArray = (data: any) => {
 };
 
 export const getOrderBy = (order: string) => {
+  if (!order) {
+    return {
+      ['createdAt']: 'desc',
+    };
+  }
   const [field, orderDirection] = order.split(':');
   return {
     [field]: orderDirection,
@@ -29,4 +34,4 @@ export const getOrderBy = (order: string) => {
 
 export const isEnumValue = (enumType: any, value: any) => {
   return Object.values(enumType).includes(value);
-}
+};

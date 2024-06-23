@@ -84,7 +84,7 @@ export class VoucherService {
       },
       take,
       skip,
-      orderBy: order ? getOrderBy(order) : undefined,
+      orderBy: getOrderBy(order),
     };
     const [total, vouchers] = await Promise.all([
       this.prismaService.voucher.count({

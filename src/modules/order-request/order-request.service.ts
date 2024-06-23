@@ -46,7 +46,7 @@ export class OrderRequestService {
       },
       take,
       skip,
-      orderBy: queryData.order ? getOrderBy(order) : undefined,
+      orderBy: getOrderBy(order),
       select: {
         id: true,
         typeOfRequest: true,

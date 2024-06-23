@@ -14,7 +14,9 @@ export class CategoryService {
 
   async findAll(queryData: FilterCategoryDto) {
     const {search,take,skip,order} = queryData;
-    let orderBy = undefined;
+    let orderBy: any = {
+      ["createdAt"]: 'desc',
+    };
     if(order) {
       if(GetAllCategoryOrderByEnum.TOTAL_PRODUCTS === order.split(':')[0]) {
         orderBy = {

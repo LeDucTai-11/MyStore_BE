@@ -28,7 +28,7 @@ export class BillService {
       },
       take,
       skip,
-      orderBy: queryData.order ? getOrderBy(order) : undefined,
+      orderBy: getOrderBy(order),
       select: {
         id: true,
         createdBy: true,

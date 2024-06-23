@@ -89,7 +89,7 @@ export class StoreService {
       },
       take,
       skip,
-      orderBy: order ? getOrderBy(order) : undefined,
+      orderBy: getOrderBy(order),
       select: {
         id: true,
         address: true,

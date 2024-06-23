@@ -107,7 +107,7 @@ export class ImportOrderService {
       where: {
         deletedAt: null,
       },
-      orderBy: order ? getOrderBy(order) : undefined,
+      orderBy: getOrderBy(order),
       select: {
         id: true,
         total: true,

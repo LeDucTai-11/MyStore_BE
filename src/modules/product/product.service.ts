@@ -91,7 +91,7 @@ export class ProductService {
       },
       take,
       skip,
-      orderBy: order ? getOrderBy(order) : undefined,
+      orderBy: getOrderBy(order),
       select: {
         id: true,
         name: true,

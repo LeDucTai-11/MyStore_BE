@@ -60,7 +60,7 @@ export class UsersService {
       },
       take,
       skip,
-      orderBy: queryData.order ? getOrderBy(queryData.order) : undefined,
+      orderBy: getOrderBy(queryData.order),
       select: {
         id: true,
         email: true,
